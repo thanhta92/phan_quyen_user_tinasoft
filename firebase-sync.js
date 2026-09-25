@@ -153,42 +153,51 @@
       });
     },
 
-    // Gộp dữ liệu đánh giá từ Cloud vào Local
+    // Gộp dữ liệu đánh giá 2 chiều giữa Cloud và Local
     mergeEvaluationsFromCloud(cloudList) {
       if (!Array.isArray(cloudList)) return;
 
       const localList = TinaDataStore.getEvaluations() || [];
       const map = new Map();
+      const cloudIds = new Set(cloudList.map(c => c && c.id).filter(Boolean));
 
       // Đưa local vào map
       localList.forEach(item => {
         if (item && item.id) map.set(item.id, item);
       });
 
-      let hasNewOrUpdated = false;
+      let hasNewFromCloud = false;
+      let hasLocalMissingOnCloud = false;
 
-      // Gộp cloud vào map (ưu tiên bản ghi mới nhất theo updatedAt/createdAt)
+      // 1. Gộp dữ liệu từ Cloud vào map
       cloudList.forEach(cloudItem => {
         if (!cloudItem || !cloudItem.id) return;
         const localItem = map.get(cloudItem.id);
         if (!localItem) {
           map.set(cloudItem.id, cloudItem);
-          hasNewOrUpdated = true;
+          hasNewFromCloud = true;
         } else {
           const cloudTime = new Date(cloudItem.updatedAt || cloudItem.createdAt || 0).getTime();
           const localTime = new Date(localItem.updatedAt || localItem.createdAt || 0).getTime();
           if (cloudTime > localTime) {
             map.set(cloudItem.id, cloudItem);
-            hasNewOrUpdated = true;
+            hasNewFromCloud = true;
           }
         }
       });
 
-      if (hasNewOrUpdated || localList.length !== map.size) {
-        const merged = Array.from(map.values()).sort((a, b) => {
-          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-        });
+      // 2. Kiểm tra xem Local có bản ghi nào mà Cloud chưa có không
+      localList.forEach(localItem => {
+        if (localItem && localItem.id && !cloudIds.has(localItem.id)) {
+          hasLocalMissingOnCloud = true;
+        }
+      });
 
+      const merged = Array.from(map.values()).sort((a, b) => {
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+
+      if (hasNewFromCloud || localList.length !== map.size) {
         // Lưu vào LocalStorage
         TinaDataStore.saveEvaluations(merged);
 
@@ -196,6 +205,17 @@
         window.dispatchEvent(new CustomEvent('tina-data-synced', {
           detail: { type: 'evaluations', count: merged.length }
         }));
+      }
+
+      // 3. Nếu Local có bản ghi mà Cloud chưa có -> Tự động đẩy lên Cloud ngay!
+      if (hasLocalMissingOnCloud && this.db && this.isConnected) {
+        const uploadMap = {};
+        merged.forEach(item => {
+          if (item && item.id) uploadMap[item.id] = item;
+        });
+        this.db.ref('tina_evaluations').update(uploadMap).then(() => {
+          console.log('[CloudSync] Đã tự động đồng bộ đẩy toàn bộ đánh giá từ thiết bị lên Cloud!');
+        }).catch(err => console.warn('[CloudSync] Lỗi auto-upload lên cloud:', err));
       }
     },
 
