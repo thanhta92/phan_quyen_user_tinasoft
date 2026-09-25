@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Ứng dụng Thu thập Phân quyền Sử dụng Tina Soft - Đăng nhập tổ hợp và đánh giá ma trận cây chức năng.">
+  <title>Thu Thập Phân Quyền Tina Soft</title>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=200">
+</head>
+
+<body>
+
+  <!-- App Header Navbar -->
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-logo"><i class="fas fa-sitemap"></i></div>
+      <h1 class="brand-title">Tina Soft</h1>
+    </div>
+
+    <!-- Right Header Actions -->
+    <div class="header-actions">
+      <!-- Active Combo Badge + Nút Thoát (Nằm ở góc phải trên cùng màn hình) -->
+      <div id="header-combo-info" class="header-combo-badge" style="display: none;">
+        <i class="fas fa-user-check" style="color: var(--status-success);"></i>
+        <span id="active-combo-text">Tổ hợp chưa chọn</span>
+        <button class="btn btn-logout-compact" id="btn-logout" title="Thoát phiên làm việc">
+          <i class="fas fa-sign-out-alt"></i> Thoát
+        </button>
+      </div>
+
+      <!-- Theme Toggle Button -->
+      <button class="btn-icon" id="btn-theme-toggle" title="Đổi Chế độ Sáng / Tối"
+        style="width: 34px; height: 34px; font-size: 14px;">
+        <i class="fas fa-moon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main App Body -->
+  <main class="app-body">
+
+    <!-- ==========================================================================
+MAN HINH 1: GIAO DIEN DANG NHAP (HIEN DAI & CHUYEN NGHIEP)
+========================================================================== -->
+    <section id="login-screen" class="login-wrapper">
+      <div class="login-card">
+        <div class="login-card-header">
+          <div class="login-icon-circle">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+          <h2 class="login-title">ĐĂNG NHẬP</h2>
+          <p class="login-subtitle">Vui lòng điền đầy đủ tất cả các trường thông tin để truy cập</p>
+        </div>
+
+        <form id="form-login" class="login-form">
+          <!-- 1. Khoa phòng - Bộ phận -->
+          <div class="login-field-group">
+            <label class="login-label">
+              <i class="fas fa-hospital-user field-icon"></i> Khoa phòng - Bộ phận <span class="required">*</span>
+            </label>
+            <div class="login-input-wrapper">
+              <select class="login-control" id="login-dept" required>
+                <option value="">-- Chọn Khoa phòng - Bộ phận --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 2. Chức danh -->
+          <div class="login-field-group">
+            <label class="login-label">
+              <i class="fas fa-user-doctor field-icon"></i> Chức danh <span class="required">*</span>
+            </label>
+            <div class="login-input-wrapper">
+              <select class="login-control" id="login-position" required>
+                <option value="">-- Chọn Chức danh --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 3. Vị trí -->
+          <div class="login-field-group">
+            <label class="login-label">
+              <i class="fas fa-id-badge field-icon"></i> Vị trí <span class="required">*</span>
+            </label>
+            <div class="login-input-wrapper">
+              <select class="login-control" id="login-title" required>
+                <option value="">-- Chọn Vị trí --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 4. Người thực hiện (Bắt buộc) -->
+          <div class="login-field-group">
+            <label class="login-label">
+              <i class="fas fa-signature field-icon"></i> Người thực hiện <span class="required">*</span>
+            </label>
+            <div class="login-input-wrapper">
+              <input type="text" class="login-control" id="login-evaluator" placeholder="Ví dụ: Bs. Nguyễn Văn An *"
+                required autocomplete="name">
+            </div>
+          </div>
+
+          <!-- Error Alert Warning -->
+          <div id="login-error-alert" class="login-alert" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i> Vui lòng chọn và điền đầy đủ tất cả 4 trường thông tin trước khi
+            đăng nhập!
+          </div>
+
+          <!-- Submit Login Button -->
+          <div class="login-action-wrapper">
+            <button type="submit" class="btn btn-login-submit" id="btn-login">
+              <span>Đăng nhập</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
+========================================================================== -->
+    <section id="main-app-screen" style="display: none;">
+
+      <!-- Top Row: Tabs (1: Đánh giá, 2: Tổng hợp dữ liệu, 3: Lịch sử, 4: Data user) + Nút 8 (LƯU) -->
+      <div class="compact-toolbar-row">
+        <nav class="tab-nav-compact">
+          <button class="tab-btn active" data-tab="tab-eval">
+            <i class="fas fa-folder-tree"></i> Đánh giá
+          </button>
+          <button class="tab-btn" data-tab="tab-summary">
+            <i class="fas fa-shield-alt"></i> <span id="tab-summary-title">Tổng hợp dữ liệu (0/0 khoa phòng đã đánh
+              giá)</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-history">
+            <i class="fas fa-history"></i> Lịch sử (<span id="history-count-badge">0</span>)
+          </button>
+          <button type="button" class="tab-btn btn-open-data-user-trigger" id="btn-tab-data-user"
+            title="Quản lý dữ liệu người dùng (Data user)">
+            <i class="fas fa-users-cog"></i> Data user
+          </button>
+        </nav>
+
+        <!-- Right Side: Item 8 (Nút LƯU - Chỉ hiển thị ở Tab Đánh giá) -->
+        <div id="tab-eval-save-container" style="display: flex; align-items: center;">
+          <button class="btn btn-primary btn-sm" id="btn-save-evaluation"
+            style="padding: 7px 24px; font-weight: 800; font-size: 13px;">
+            <i class="fas fa-save"></i> LƯU
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: GIAO DIEN CAY CHUC NANG CHUA CONTROLS A, B, C, D NGAY TRONG COMPACT TABLE HEADER -->
+      <section class="tab-content active" id="tab-eval">
+
+        <div class="perm-table-wrapper tree-viewport-maximized">
+          <table class="perm-table perm-table-compact">
+            <thead>
+              <tr class="header-inline-row">
+                <th style="width: 60px;">STT</th>
+
+                <!-- Main Header Cell holding Title, 3 Action Buttons, and Search Box -->
+                <th>
+                  <div class="table-header-controls-container">
+                    <!-- Title -->
+                    <div
+                      style="font-weight: 800; text-transform: uppercase; font-size: 12px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;">
+                      DANH SÁCH CÁC CHỨC NĂNG TRÊN TINASOFT
+                    </div>
+
+                    <!-- 3 Action Buttons (nằm sát bên tiêu đề) -->
+                    <div class="header-actions-inline" style="flex-shrink: 0;">
+                      <button type="button" class="btn btn-secondary btn-header" id="btn-expand-all"
+                        title="Mở rộng tất cả thư mục">
+                        <i class="fas fa-folder-open" style="color: #2563eb;"></i> Mở rộng
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-header" id="btn-collapse-all"
+                        title="Thu gọn toàn bộ thư mục">
+                        <i class="fas fa-folder" style="color: #475569;"></i> Thu gọn
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-header" id="btn-clear-eval-perms"
+                        title="Bỏ chọn tất cả quyền đã đánh giá">
+                        <i class="fas fa-rotate-left" style="color: #dc2626;"></i> Bỏ chọn tất cả
+                      </button>
+                    </div>
+
+                    <!-- Search Input (di chuyển sát bộ nút và chiếm trọn không gian còn lại) -->
+                    <div class="header-search-box">
+                      <i class="fas fa-search"></i>
+                      <input type="text" id="search-tree-keyword" class="form-control-header"
+                        placeholder="Gõ tên chức năng cần lọc tìm...">
+                    </div>
+                  </div>
+                </th>
+
+                <th
+                  style="width: 330px; min-width: 330px; text-align: center; color: #2563eb; font-size: 13px; font-weight: 800; border-left: 2px solid #2563eb;"
+                  class="th-perm-interactive">
+                  Chức năng yêu cầu
+                </th>
+                <th
+                  style="width: 330px; min-width: 330px; text-align: center; color: var(--text-main); font-size: 13px; font-weight: 800; border-left: 2px solid #2563eb; border-right: 2px solid #2563eb;"
+                  class="th-perm-reference">
+                  Chức năng đã yêu cầu
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tree-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 2: DỮ LIỆU TỔNG HỢP (BẢO VỆ BỞI MẬT KHẨU thanhta92) -->
+      <section class="tab-content" id="tab-summary">
+        <div class="panel" id="summary-locked-panel" style="text-align: center; padding: 40px 20px;">
+          <div
+            style="width: 60px; height: 60px; border-radius: 50%; background: var(--status-warning-bg); color: var(--status-warning); display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 16px;">
+            <i class="fas fa-lock"></i>
+          </div>
+          <h2 style="font-size: 20px; margin-bottom: 8px;">Khu Vực Dữ Liệu Tổng Hợp Được Bảo Vệ</h2>
+          <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 20px; font-size: 13px;">
+            Chỉ người quản trị có mật khẩu bảo mật mới có quyền truy cập và xem bảng tổng hợp ma trận phân quyền hệ
+            thống.
+          </p>
+          <button class="btn btn-primary" id="btn-prompt-password">
+            <i class="fas fa-key"></i> Nhập Mật Khẩu Xem Data
+          </button>
+        </div>
+
+        <div class="panel" id="summary-unlocked-panel" style="display: none; padding: 16px;">
+          <!-- HÀNG 1: Tiêu đề bên trái, 2 nút chức năng ở góc trên bên phải (Vị trí 1) -->
+          <div class="panel-header"
+            style="margin-bottom: 12px; padding-bottom: 10px; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <h2 class="panel-title" style="font-size: 16px;"><i class="fas fa-shield-check"
+                  style="color: var(--status-success);"></i> Bảng Kết Quả Dữ Liệu Phân Quyền Tổng Hợp (Rule PQCN)</h2>
+              <p class="panel-subtitle" style="font-size: 12px;">Quy tắc tổng hợp: Mỗi mục chức năng, nếu có ít nhất 1
+                lần tích chọn trong các lượt đánh giá của Tổ hợp -> Kết quả = TÍCH CHỌN.</p>
+            </div>
+            <!-- Vị trí 1: Hai nút chức năng -->
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-success btn-sm" id="btn-export-aggregated-excel"
+                title="Xuất File: Phan_quyen_theo_khoa_phong.xlsx"><i class="fas fa-file-excel"></i> Xuất Excel
+                Khoa/Phòng</button>
+              <button class="btn btn-secondary btn-sm" id="btn-relock-data"><i class="fas fa-lock"></i> Khóa
+                Lại</button>
+            </div>
+          </div>
+
+          <!-- HÀNG 2: Vị trí 2 (Khoa phòng đã đánh giá) và Vị trí 3 (Khoa phòng chưa đánh giá) -->
+          <div class="toolbar"
+            style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <!-- Vị trí 2: Khoa phòng đã đánh giá -->
+            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+              <label style="font-size: 13.5px; font-weight: 700; color: #f59e0b; white-space: nowrap;">
+                Khoa phòng đã đánh giá
+              </label>
+              <select class="form-control form-control-sm summary-dept-select-control" id="filter-summary-combo"
+                style="min-width: 330px; max-width: 460px; font-weight: 700; font-size: 13px; height: 35px; cursor: pointer; border-radius: 6px;">
+                <option value="">-- Xem tất cả các Khoa phòng (12 tổ hợp) --</option>
+              </select>
+            </div>
+
+            <!-- Vị trí 3: Khoa phòng chưa đánh giá -->
+            <div id="unevaluated-depts-box" style="display: flex; align-items: center; gap: 8px;"></div>
+          </div>
+
+          <div class="perm-table-wrapper tree-viewport-maximized summary-table-wrapper">
+            <table class="perm-table perm-table-compact perm-table-summary">
+              <thead>
+                <tr id="summary-table-head">
+                  <!-- Rendered via JS -->
+                </tr>
+              </thead>
+              <tbody id="summary-table-body">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: NHẬT KÝ LỊCH SỬ ĐÁNH GIÁ (BẢO VỆ BỞI MẬT KHẨU thanhta92) -->
+      <section class="tab-content" id="tab-history">
+        <div class="panel" id="history-locked-panel" style="text-align: center; padding: 40px 20px;">
+          <div
+            style="width: 60px; height: 60px; border-radius: 50%; background: var(--status-warning-bg); color: var(--status-warning); display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 16px;">
+            <i class="fas fa-lock"></i>
+          </div>
+          <h2 style="font-size: 20px; margin-bottom: 8px;">Khu Vực Lịch Sử Đánh Giá Được Bảo Vệ</h2>
+          <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 20px; font-size: 13px;">
+            Chỉ người quản trị có mật khẩu bảo mật mới có quyền truy cập và xem nhật ký lịch sử các lượt đánh giá.
+          </p>
+          <button class="btn btn-primary" id="btn-prompt-password-history">
+            <i class="fas fa-key"></i> Nhập Mật Khẩu Xem Lịch Sử
+          </button>
+        </div>
+
+        <div class="panel" id="history-unlocked-panel" style="display: none; padding: 16px;">
+          <div class="panel-header"
+            style="margin-bottom: 14px; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+            <h2 class="panel-title" style="font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;"><i
+                class="fas fa-history"></i> Nhật Ký Các Lượt Đánh Giá Thu Thập</h2>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="btn btn-success btn-sm" id="btn-export-history-excel"
+                title="Xuất File: Phan_quyen_theo_ca_nhan.xlsx"><i class="fas fa-file-excel"></i> Xuất Excel Theo Cá
+                Nhân</button>
+              <button class="btn btn-secondary btn-sm" id="btn-clear-all-evals" style="color: var(--status-danger);"><i
+                  class="fas fa-trash-alt"></i> Xóa Dữ Liệu</button>
+              <button class="btn btn-secondary btn-sm btn-relock-data-all"><i class="fas fa-lock"></i> Khóa Lại</button>
+            </div>
+          </div>
+
+          <div class="perm-table-wrapper tree-viewport-maximized">
+            <table class="perm-table perm-table-compact">
+              <thead>
+                <tr>
+                  <th style="text-align: center;">Mã Đánh Giá</th>
+                  <th style="text-align: center;">Khoa phòng - Bộ phận</th>
+                  <th style="text-align: center;">Chức danh</th>
+                  <th style="text-align: center;">Vị trí</th>
+                  <th style="text-align: center;">Người Đánh Giá</th>
+                  <th style="text-align: center;">Thời Gian Ghi Nhận</th>
+                  <th style="text-align: center;">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mobile Floating Action Bar (Chỉ hiển thị trên Mobile ở Tab Đánh giá) -->
+      <div id="mobile-floating-save-bar" class="mobile-floating-save-bar" style="display: none;">
+        <button type="button" class="btn btn-primary btn-mobile-save" id="btn-save-mobile">
+          <i class="fas fa-save"></i> <span>LƯU ĐÁNH GIÁ</span>
+          <span class="badge-eval-count" id="mobile-save-count">0</span>
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: YÊU CẦU NHẬP MẬT KHẨU DATA USER (877598) -->
+  <div class="modal-overlay" id="modal-data-user-password">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="font-size: 15px;"><i class="fas fa-lock" style="color:var(--primary);"></i> Xác
+          Thực Quản Trị Data User</h3>
+        <button class="modal-close" onclick="ModalManager.close('modal-data-user-password')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 18px;">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">Vui lòng nhập mật khẩu quản trị để
+          chỉnh sửa dữ liệu đầu vào (Khoa phòng - Chức danh - Vị trí):</p>
+        <div style="display: grid; grid-template-columns: 85px 1fr; align-items: center; gap: 12px;">
+          <label style="font-size: 14px; font-weight: 700; color: #2563eb; text-align: right;">Mật khẩu</label>
+          <div>
+            <input type="password" class="form-control" id="input-data-user-password" placeholder="Nhập mã bảo mật..."
+              style="border: 1px solid #2563eb; border-radius: 6px; padding: 8px 12px;">
+            <div id="data-user-password-error"
+              style="color: var(--status-danger); font-size: 12px; margin-top: 6px; display: none;">
+              <i class="fas fa-exclamation-circle"></i> Mật khẩu không chính xác! Vui lòng thử lại.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="ModalManager.close('modal-data-user-password')">Hủy
+          Bỏ</button>
+        <button class="btn btn-primary btn-sm" id="btn-submit-data-user-password"
+          style="padding: 6px 18px; font-weight: 700;"><i class="fas fa-key"></i> Xác nhận</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: QUẢN LÝ DỮ LIỆU DATA USER (THÊM, SỬA, XÓA KHOA PHÒNG - CHỨC DANH - VỊ TRÍ) -->
+  <div class="modal-overlay" id="modal-data-user-manager">
+    <div class="modal-card"
+      style="max-width: 880px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h3 class="modal-title" style="font-size: 16px;"><i class="fas fa-users-cog"
+              style="color:var(--primary);"></i> Quản Lý Dữ Liệu Tổ Hợp User (Data user)</h3>
+          <span id="data-user-count-badge" class="badge badge-approved">76 tổ hợp</span>
+        </div>
+        <button class="modal-close" onclick="ModalManager.close('modal-data-user-manager')">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 16px; overflow-y: auto; flex: 1;">
+        <!-- Alert Info -->
+        <div
+          style="background: rgba(37, 99, 235, 0.06); border: 1px solid #93c5fd; border-radius: 6px; padding: 10px 14px; font-size: 12.5px; color: var(--text-main); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-info-circle" style="font-size: 16px; color: var(--primary);"></i>
+          <span>Bạn có thể thêm mới, sửa, hoặc xóa tổ hợp người dùng. Sau khi cập nhật, dropdown đăng nhập sẽ được làm
+            mới ngay và <strong>toàn bộ dữ liệu đánh giá trước đó vẫn được giữ nguyên</strong>.</span>
+        </div>
+
+        <!-- Form Thêm / Sửa Tổ hợp -->
+        <div
+          style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+          <div
+            style="font-weight: 700; font-size: 13.5px; margin-bottom: 10px; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+            <span id="data-user-form-title"><i class="fas fa-plus-circle" style="color: var(--status-success);"></i>
+              Thêm Tổ Hợp User Mới</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-edit-data-user"
+              style="display: none; font-size: 11px; padding: 2px 8px;">Hủy Sửa</button>
+          </div>
+          <form id="form-data-user-crud"
+            style="display: grid; grid-template-columns: 1fr 1fr 140px auto; gap: 10px; align-items: end;">
+            <input type="hidden" id="edit-data-user-index" value="-1">
+
+            <div>
+              <label
+                style="font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 4px; color: var(--text-muted);">Khoa
+                phòng - Bộ phận *</label>
+              <input type="text" class="form-control form-control-sm" id="crud-dept"
+                placeholder="Nhập hoặc chọn Khoa phòng..." list="list-existing-depts" required>
+              <datalist id="list-existing-depts"></datalist>
+            </div>
+
+            <div>
+              <label
+                style="font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 4px; color: var(--text-muted);">Chức
+                danh *</label>
+              <input type="text" class="form-control form-control-sm" id="crud-title"
+                placeholder="Nhập hoặc chọn Chức danh..." list="list-existing-titles" required>
+              <datalist id="list-existing-titles"></datalist>
+            </div>
+
+            <div>
+              <label
+                style="font-size: 11.5px; font-weight: 700; display: block; margin-bottom: 4px; color: var(--text-muted);">Vị
+                trí *</label>
+              <select class="form-control form-control-sm" id="crud-pos" required>
+                <option value="Nhân viên">Nhân viên</option>
+                <option value="Quản lý">Quản lý</option>
+              </select>
+            </div>
+
+            <div>
+              <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-data-user-row"
+                style="padding: 6px 14px; font-weight: 700; height: 31px; white-space: nowrap;">
+                <i class="fas fa-plus"></i> <span id="btn-submit-data-user-label">Thêm</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Toolbar: Search & Reset -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px;">
+          <div style="position: relative; flex: 1; max-width: 320px;">
+            <i class="fas fa-search"
+              style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-muted);"></i>
+            <input type="text" class="form-control form-control-sm" id="search-data-user-keyword"
+              placeholder="Tìm kiếm Khoa phòng, Chức danh..." style="padding-left: 28px;">
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-data-user-default"
+            title="Khôi phục lại 76 tổ hợp ban đầu từ Data_khoaphong.docx" style="font-size: 11.5px;">
+            <i class="fas fa-rotate-left" style="color: #d97706;"></i> Khôi phục dữ liệu gốc
+          </button>
+        </div>
+
+        <!-- Table of Combinations -->
+        <div style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px;">
+          <table class="perm-table perm-table-compact" style="width: 100%;">
+            <thead>
+              <tr>
+                <th style="width: 50px; text-align: center;">STT</th>
+                <th>Khoa phòng - Bộ phận</th>
+                <th>Chức danh</th>
+                <th style="width: 130px; text-align: center;">Vị trí</th>
+                <th style="width: 110px; text-align: center;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="data-user-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="flex-shrink: 0; justify-content: space-between;">
+        <div style="font-size: 12px; color: var(--text-muted);">
+          * Nhấn <strong>"Cập nhật & Áp dụng"</strong> để lưu thay đổi vào hệ thống.
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" onclick="ModalManager.close('modal-data-user-manager')">Đóng</button>
+          <button class="btn btn-success btn-sm" id="btn-save-apply-data-user"
+            style="padding: 6px 20px; font-weight: 700;">
+            <i class="fas fa-check-double"></i> Cập nhật & Áp dụng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: YÊU CẦU NHẬP MẬT KHẨU (thanhta92 - THEO HÌNH 2) -->
+  <div class="modal-overlay" id="modal-password">
+    <div class="modal-card" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="font-size: 16px;"><i class="fas fa-shield-alt" style="color:var(--primary);"></i>
+          Bảo Mật Dữ Liệu & Lịch Sử</h3>
+        <button class="modal-close" onclick="ModalManager.close('modal-password')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 24px 20px;">
+        <div style="display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 14px;">
+          <label style="font-size: 15px; font-weight: 700; color: #2563eb; text-align: right;">Mật khẩu</label>
+          <div>
+            <input type="password" class="form-control" id="input-security-password"
+              style="border: 1px solid #2563eb; border-radius: 4px; padding: 8px 12px;">
+            <div id="password-error-msg"
+              style="color: var(--status-danger); font-size: 12px; margin-top: 6px; display: none;">
+              <i class="fas fa-exclamation-circle"></i> Mật khẩu không chính xác! Vui lòng thử lại.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="ModalManager.close('modal-password')">Hủy Bỏ</button>
+        <button class="btn btn-primary btn-sm" id="btn-submit-password" style="padding: 6px 18px; font-weight: 700;"><i
+            class="fas fa-unlock-alt"></i> Truy cập</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- External Libraries: ExcelJS for Advanced Multi-Sheet Excel Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+
+  <!-- App Core JavaScript Files -->
+  <script src="lib.js?v=200"></script>
+  <script src="app.js?v=200"></script>
+
+</body>
+
+</html>
