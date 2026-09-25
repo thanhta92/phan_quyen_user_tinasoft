@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=205">
+  <link rel="stylesheet" href="style.css?v=210">
 </head>
 
 <body>
@@ -202,11 +202,17 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
                       </button>
                     </div>
 
-                    <!-- Search Input (di chuyển sát bộ nút và chiếm trọn không gian còn lại) -->
-                    <div class="header-search-box">
-                      <i class="fas fa-search"></i>
-                      <input type="text" id="search-tree-keyword" class="form-control-header"
-                        placeholder="Gõ tên chức năng cần lọc tìm...">
+                    <!-- Row Search + Nút LƯU -->
+                    <div class="header-search-row">
+                      <div class="header-search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-tree-keyword" class="form-control-header"
+                          placeholder="Gõ tên chức năng cần lọc tìm...">
+                      </div>
+                      <button type="button" class="btn btn-primary btn-save-header" id="btn-save-inline"
+                        title="Lưu dữ liệu đánh giá">
+                        <i class="fas fa-save"></i> <span>LƯU</span>
+                      </button>
                     </div>
                   </div>
                 </th>
@@ -356,13 +362,7 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
 
   </main>
 
-  <!-- Mobile Floating Action Bar (Cố định ở đáy màn hình trên Mobile khi Đăng nhập) -->
-  <div id="mobile-floating-save-bar" class="mobile-floating-save-bar" style="display: none;">
-    <button type="button" class="btn btn-primary btn-mobile-save" id="btn-save-mobile">
-      <i class="fas fa-save"></i> <span>LƯU DỮ LIỆU ĐÁNH GIÁ</span>
-      <span class="badge-eval-count" id="mobile-save-count">0</span>
-    </button>
-  </div>
+  <!-- End of Main App -->
 
   <!-- MODAL: YÊU CẦU NHẬP MẬT KHẨU DATA USER (877598) -->
   <div class="modal-overlay" id="modal-data-user-password">
@@ -640,9 +640,9 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <!-- App Core JavaScript Files -->
-  <script src="firebase-sync.js?v=205"></script>
-  <script src="lib.js?v=205"></script>
-  <script src="app.js?v=205"></script>
+  <script src="firebase-sync.js?v=210"></script>
+  <script src="lib.js?v=210"></script>
+  <script src="app.js?v=210"></script>
 
 </body>
 

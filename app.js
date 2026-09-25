@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnLogout: document.getElementById('btn-logout'),
     saveBtnContainer: document.getElementById('tab-eval-save-container'),
     btnSaveEval: document.getElementById('btn-save-evaluation'),
+    btnSaveInline: document.getElementById('btn-save-inline'),
     treeTableBody: document.getElementById('tree-table-body'),
     searchTreeKeyword: document.getElementById('search-tree-keyword'),
     summaryTableHead: document.getElementById('summary-table-head'),
@@ -74,10 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryLockedPanel: document.getElementById('summary-locked-panel'),
     summaryUnlockedPanel: document.getElementById('summary-unlocked-panel'),
     historyLockedPanel: document.getElementById('history-locked-panel'),
-    historyUnlockedPanel: document.getElementById('history-unlocked-panel'),
-    mobileFloatingSaveBar: document.getElementById('mobile-floating-save-bar'),
-    btnSaveMobile: document.getElementById('btn-save-mobile'),
-    mobileSaveCount: document.getElementById('mobile-save-count')
+    historyUnlockedPanel: document.getElementById('history-unlocked-panel')
   };
 
   // ==========================================================================
@@ -244,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (DOM.mainAppScreen) DOM.mainAppScreen.style.display = 'none';
     if (DOM.loginScreen) DOM.loginScreen.style.display = 'flex';
     if (DOM.comboHeader) DOM.comboHeader.style.display = 'none';
-    if (DOM.mobileFloatingSaveBar) DOM.mobileFloatingSaveBar.style.display = 'none';
 
     renderTreeTable();
     updateEvalCountBadge();
@@ -279,13 +276,15 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.values(appState.currentPerms).forEach(p => {
       if (p && (p.xem || p.nhap || p.xuat)) count++;
     });
-    if (DOM.mobileSaveCount) {
-      DOM.mobileSaveCount.textContent = count;
-    }
     if (DOM.btnSaveEval) {
       DOM.btnSaveEval.innerHTML = count > 0 
         ? `<i class="fas fa-save"></i> LƯU (${count})` 
         : `<i class="fas fa-save"></i> LƯU`;
+    }
+    if (DOM.btnSaveInline) {
+      DOM.btnSaveInline.innerHTML = count > 0 
+        ? `<i class="fas fa-save"></i> <span>LƯU (${count})</span>` 
+        : `<i class="fas fa-save"></i> <span>LƯU</span>`;
     }
   }
 
@@ -301,13 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (content) content.classList.add('active');
     appState.activeTab = targetTab;
 
-    // Nút LƯU Desktop & Mobile Floating Save Bar (Chỉ hiển thị ở Tab Đánh giá)
+    // Nút LƯU Desktop Toolbar (Chỉ hiển thị ở Tab Đánh giá khi đã đăng nhập)
     const isEvalTab = (targetTab === 'tab-eval' && appState.isLoggedIn);
     if (DOM.saveBtnContainer) {
       DOM.saveBtnContainer.style.display = isEvalTab ? 'flex' : 'none';
-    }
-    if (DOM.mobileFloatingSaveBar) {
-      DOM.mobileFloatingSaveBar.style.display = isEvalTab ? 'flex' : 'none';
     }
 
     if (targetTab === 'tab-summary' && appState.isUnlocked) {
@@ -627,13 +623,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const currentEvalId = appState.currentSessionEvalId;
 
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const localCreatedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
     const newEval = {
       id: currentEvalId,
       department: appState.currentDept,
       position: appState.currentPos,
       title: appState.currentTitle,
       evaluator: appState.currentEvaluator,
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      createdAt: localCreatedAt,
       perms: JSON.parse(JSON.stringify(appState.currentPerms))
     };
 
@@ -650,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   DOM.btnSaveEval?.addEventListener('click', handleSaveEvaluation);
-  DOM.btnSaveMobile?.addEventListener('click', handleSaveEvaluation);
+  DOM.btnSaveInline?.addEventListener('click', handleSaveEvaluation);
 
   // ==========================================================================
   // 7. TAB 2: Render Dữ Liệu Tổng Hợp Matrix (Rule PQCN & Lọc Theo Khoa Phòng)
