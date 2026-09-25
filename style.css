@@ -277,10 +277,6 @@ body {
   cursor: pointer;
 }
 
-.mobile-floating-save-bar {
-  display: none;
-}
-
 /* Main App Body */
 .app-body {
   max-width: 1600px;
@@ -1261,8 +1257,10 @@ body {
   display: none;
 }
 
-.mobile-floating-save-bar {
-  display: none !important;
+@media (min-width: 769px) {
+  .mobile-floating-save-bar {
+    display: none !important;
+  }
 }
 
 .pill-icon {

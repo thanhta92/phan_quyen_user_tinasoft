@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=204">
+  <link rel="stylesheet" href="style.css?v=205">
 </head>
 
 <body>
@@ -26,15 +26,14 @@
 
     <!-- Right Header Actions -->
     <div class="header-actions">
-      <!-- Cloud Sync Realtime Badge -->
-      <div id="cloud-sync-status" class="cloud-sync-badge status-offline" title="Trạng thái đồng bộ đám mây (Click để xem chi tiết / cấu hình)">
+      <!-- Cloud Sync Realtime Badge (Ẩn khỏi giao diện, hệ thống chạy ngầm) -->
+      <div id="cloud-sync-status" class="cloud-sync-badge status-offline" style="display: none !important;">
         <span class="sync-dot"></span>
         <span class="sync-text">Cloud Sync</span>
       </div>
 
-      <!-- Cloud Sync Config Button -->
-      <button class="btn-icon" id="btn-cloud-config" title="Cấu hình / Đồng bộ Firebase Cloud"
-        style="width: 34px; height: 34px; font-size: 14px; color: #38bdf8;">
+      <!-- Cloud Sync Config Button (Ẩn khỏi giao diện) -->
+      <button class="btn-icon" id="btn-cloud-config" style="display: none !important;">
         <i class="fas fa-cloud"></i>
       </button>
 
@@ -360,7 +359,7 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
   <!-- Mobile Floating Action Bar (Cố định ở đáy màn hình trên Mobile khi Đăng nhập) -->
   <div id="mobile-floating-save-bar" class="mobile-floating-save-bar" style="display: none;">
     <button type="button" class="btn btn-primary btn-mobile-save" id="btn-save-mobile">
-      <i class="fas fa-save"></i> <span>LƯU ĐÁNH GIÁ</span>
+      <i class="fas fa-save"></i> <span>LƯU DỮ LIỆU ĐÁNH GIÁ</span>
       <span class="badge-eval-count" id="mobile-save-count">0</span>
     </button>
   </div>
@@ -641,9 +640,9 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <!-- App Core JavaScript Files -->
-  <script src="firebase-sync.js?v=202"></script>
-  <script src="lib.js?v=202"></script>
-  <script src="app.js?v=202"></script>
+  <script src="firebase-sync.js?v=205"></script>
+  <script src="lib.js?v=205"></script>
+  <script src="app.js?v=205"></script>
 
 </body>
 
