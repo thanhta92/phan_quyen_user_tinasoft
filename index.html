@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=211">
+  <link rel="stylesheet" href="style.css?v=213">
 </head>
 
 <body>
@@ -327,7 +327,10 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
             style="margin-bottom: 14px; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
             <h2 class="panel-title" style="font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;"><i
                 class="fas fa-history"></i> Nhật Ký Các Lượt Đánh Giá Thu Thập</h2>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" id="btn-sync-history-modal" title="Đồng bộ dữ liệu trực tiếp giữa iPhone & Máy tính">
+                <i class="fas fa-arrows-rotate"></i> Đồng Bộ / Nhập Dữ Liệu
+              </button>
               <button class="btn btn-success btn-sm" id="btn-export-history-excel"
                 title="Xuất File: Phan_quyen_theo_ca_nhan.xlsx"><i class="fas fa-file-excel"></i> Xuất Excel Theo Cá
                 Nhân</button>
@@ -547,6 +550,60 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
     </div>
   </div>
 
+  <!-- MODAL: ĐỒNG BỘ & NHẬP XUẤT DỮ LIỆU TRỰC TIẾP (DIRECT BACKUP & RESTORE) -->
+  <div class="modal-overlay" id="modal-sync-history">
+    <div class="modal-card" style="max-width: 620px; width: 95%;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="font-size: 16px;">
+          <i class="fas fa-arrows-rotate" style="color: var(--primary);"></i> Đồng Bộ Dữ Liệu Trực Tiếp Giữa Các Thiết Bị
+        </h3>
+        <button class="modal-close" onclick="ModalManager.close('modal-sync-history')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <!-- Phần 1: Xuất từ máy này -->
+        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: #10b981; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fas fa-arrow-up-from-bracket"></i> 1. Lấy dữ liệu từ máy này (<span id="sync-export-count">0</span> đánh giá)</span>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px;">
+            Sao chép mã dữ liệu hoặc tải file từ thiết bị này (iPhone / Máy tính) để chuyển sang thiết bị khác:
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-primary btn-sm" id="btn-copy-history-json" style="font-weight: 700;">
+              <i class="fas fa-copy"></i> Sao chép mã dữ liệu
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-download-history-json">
+              <i class="fas fa-download"></i> Tải file (.json)
+            </button>
+          </div>
+        </div>
+
+        <!-- Phần 2: Nhập vào máy này -->
+        <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: #2563eb;">
+            <i class="fas fa-arrow-down-to-bracket"></i> 2. Nhập & Gộp dữ liệu vào máy này
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px;">
+            Dán mã dữ liệu sao chép từ thiết bị khác vào ô dưới đây (hoặc chọn file .json) và bấm <b>"Nạp & Gộp Dữ Liệu"</b>:
+          </p>
+          <textarea id="textarea-import-history-json" class="form-control" rows="4" placeholder="Dán mã dữ liệu JSON vào đây..." style="font-family: monospace; font-size: 12px; margin-bottom: 10px;"></textarea>
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0;">
+              <i class="fas fa-file-arrow-up"></i> Chọn file .json
+              <input type="file" id="input-file-history-json" accept=".json" style="display: none;">
+            </label>
+            <button class="btn btn-success btn-sm" id="btn-submit-import-history" style="font-weight: 800; padding: 6px 18px;">
+              <i class="fas fa-check-circle"></i> Nạp & Gộp Dữ Liệu
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="ModalManager.close('modal-sync-history')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: CẤU HÌNH & ĐỒNG BỘ DỮ LIỆU ĐÁM MÂY (FIREBASE CLOUD SYNC) -->
   <div class="modal-overlay" id="modal-cloud-sync">
     <div class="modal-card" style="max-width: 620px;">
@@ -640,9 +697,9 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <!-- App Core JavaScript Files -->
-  <script src="firebase-sync.js?v=211"></script>
-  <script src="lib.js?v=211"></script>
-  <script src="app.js?v=211"></script>
+  <script src="firebase-sync.js?v=213"></script>
+  <script src="lib.js?v=213"></script>
+  <script src="app.js?v=213"></script>
 
 </body>
 

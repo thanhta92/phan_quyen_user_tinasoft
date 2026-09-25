@@ -1001,6 +1001,127 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ==========================================================================
+  // 8.5. ĐỒNG BỘ TRỰC TIẾP GIỮA IPHONE & MÁY TÍNH (IMPORT / EXPORT BACKUP)
+  // ==========================================================================
+  function initSyncHistoryModal() {
+    const btnOpen = document.getElementById('btn-sync-history-modal');
+    const badgeCount = document.getElementById('sync-export-count');
+    const btnCopy = document.getElementById('btn-copy-history-json');
+    const btnDownload = document.getElementById('btn-download-history-json');
+    const textareaImport = document.getElementById('textarea-import-history-json');
+    const inputFile = document.getElementById('input-file-history-json');
+    const btnSubmitImport = document.getElementById('btn-submit-import-history');
+
+    function refreshModalData() {
+      const evals = TinaDataStore.getEvaluations() || [];
+      if (badgeCount) badgeCount.textContent = evals.length;
+      if (textareaImport) textareaImport.value = '';
+    }
+
+    btnOpen?.addEventListener('click', () => {
+      refreshModalData();
+      ModalManager.open('modal-sync-history');
+    });
+
+    // 1. Sao chép mã JSON vào clipboard
+    btnCopy?.addEventListener('click', () => {
+      const evals = TinaDataStore.getEvaluations() || [];
+      if (evals.length === 0) {
+        ToastManager.show('Chưa có dữ liệu đánh giá nào trên máy này để sao chép!', 'warning');
+        return;
+      }
+      const jsonStr = JSON.stringify(evals);
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        ToastManager.show(`Đã sao chép toàn bộ ${evals.length} bản ghi! Bạn có thể gửi/dán sang thiết bị khác.`, 'success', 'Sao Chép Thành Công');
+      }).catch(() => {
+        if (textareaImport) {
+          textareaImport.value = jsonStr;
+          textareaImport.select();
+          document.execCommand('copy');
+          ToastManager.show(`Đã sao chép ${evals.length} bản ghi!`, 'success');
+        }
+      });
+    });
+
+    // 2. Tải file .json
+    btnDownload?.addEventListener('click', () => {
+      const evals = TinaDataStore.getEvaluations() || [];
+      if (evals.length === 0) {
+        ToastManager.show('Chưa có dữ liệu đánh giá nào trên máy này để tải file!', 'warning');
+        return;
+      }
+      const blob = new Blob([JSON.stringify(evals, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tina_evaluations_backup_${evals.length}_items.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      ToastManager.show(`Đã tải về file sao lưu gồm ${evals.length} bản ghi!`, 'success');
+    });
+
+    // 3. Đọc từ file tải lên
+    inputFile?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (textareaImport) textareaImport.value = event.target.result;
+        ToastManager.show(`Đã nạp nội dung file ${file.name}! Bấm "Nạp & Gộp Dữ Liệu" để áp dụng.`, 'info');
+      };
+      reader.readAsText(file);
+    });
+
+    // 4. Nạp & Gộp dữ liệu
+    btnSubmitImport?.addEventListener('click', () => {
+      const text = textareaImport?.value.trim();
+      if (!text) {
+        ToastManager.show('Vui lòng dán mã dữ liệu hoặc chọn file .json trước khi nạp!', 'warning');
+        return;
+      }
+
+      try {
+        let imported = JSON.parse(text);
+        if (!Array.isArray(imported)) {
+          if (imported && typeof imported === 'object') {
+            imported = Object.values(imported);
+          } else {
+            throw new Error('Định dạng dữ liệu không hợp lệ!');
+          }
+        }
+
+        const validItems = imported.filter(item => item && item.id && item.department);
+        if (validItems.length === 0) {
+          ToastManager.show('Không tìm thấy bản ghi đánh giá hợp lệ nào trong dữ liệu nạp vào!', 'error');
+          return;
+        }
+
+        // Gộp vào TinaDataStore
+        validItems.forEach(item => {
+          TinaDataStore.saveOrUpdateEvaluation(item);
+        });
+
+        // Đẩy lên Cloud nếu có kết nối
+        if (window.TinaFirebase && typeof window.TinaFirebase.pushAllLocalToCloud === 'function') {
+          window.TinaFirebase.pushAllLocalToCloud();
+        }
+
+        refreshAllData();
+        refreshModalData();
+        ModalManager.close('modal-sync-history');
+
+        const totalNow = (TinaDataStore.getEvaluations() || []).length;
+        ToastManager.show(`Đã nạp & gộp thành công ${validItems.length} bản ghi! Tổng cộng hiện có ${totalNow} đánh giá.`, 'success', 'Nạp Dữ Liệu Thành Công');
+      } catch (err) {
+        console.error('Lỗi phân tích JSON:', err);
+        ToastManager.show('Mã dữ liệu dán vào bị sai định dạng JSON!', 'error', 'Lỗi Dữ Liệu');
+      }
+    });
+  }
+
+  // ==========================================================================
   // 9. QUẢN LÝ DATA USER (MẬT KHẨU 877598 - THÊM, SỬA, XÓA KHOA PHÒNG/CHỨC DANH/VỊ TRÍ)
   // ==========================================================================
   function initDataUserManagement() {
@@ -1353,6 +1474,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  initSyncHistoryModal();
   initDataUserManagement();
   initCloudSyncController();
 

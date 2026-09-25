@@ -84,6 +84,8 @@
         this.db = firebase.database();
         this.updateUIStatus('connecting', 'Đang kết nối...');
 
+        this.attachRealtimeListeners();
+
         // Giám sát kết nối mạng đến Firebase
         const connectedRef = this.db.ref('.info/connected');
         connectedRef.on('value', (snap) => {
@@ -91,7 +93,6 @@
             this.isConnected = true;
             console.log('[CloudSync] Đã kết nối Firebase Realtime Database thành công!');
             this.updateUIStatus('online', 'Cloud Realtime');
-            this.attachRealtimeListeners();
             // Đồng bộ dữ liệu lần đầu
             this.pullAllFromCloud();
           } else {
@@ -133,10 +134,8 @@
       const evalsRef = this.db.ref('tina_evaluations');
       evalsRef.on('value', (snapshot) => {
         const cloudData = snapshot.val();
-        if (cloudData) {
-          const list = Array.isArray(cloudData) ? cloudData : Object.values(cloudData);
-          this.mergeEvaluationsFromCloud(list);
-        }
+        const list = cloudData ? (Array.isArray(cloudData) ? cloudData : Object.values(cloudData)) : [];
+        this.mergeEvaluationsFromCloud(list);
       }, (error) => {
         console.warn('[CloudSync] Lỗi lắng nghe evaluations:', error);
       });
@@ -147,6 +146,11 @@
         const cloudRows = snapshot.val();
         if (cloudRows && Array.isArray(cloudRows) && cloudRows.length > 0) {
           this.mergeUserRowsFromCloud(cloudRows);
+        } else {
+          const localRows = typeof getUserDataRows === 'function' ? getUserDataRows() : [];
+          if (localRows && localRows.length > 0 && this.db) {
+            this.db.ref('tina_custom_user_rows').set(localRows).catch(() => {});
+          }
         }
       }, (error) => {
         console.warn('[CloudSync] Lỗi lắng nghe custom_user_rows:', error);
@@ -155,7 +159,7 @@
 
     // Gộp dữ liệu đánh giá 2 chiều giữa Cloud và Local
     mergeEvaluationsFromCloud(cloudList) {
-      if (!Array.isArray(cloudList)) return;
+      if (!Array.isArray(cloudList)) cloudList = [];
 
       const localList = TinaDataStore.getEvaluations() || [];
       const map = new Map();
@@ -335,10 +339,8 @@
       try {
         const snapEvals = await this.db.ref('tina_evaluations').once('value');
         const cloudData = snapEvals.val();
-        if (cloudData) {
-          const list = Array.isArray(cloudData) ? cloudData : Object.values(cloudData);
-          this.mergeEvaluationsFromCloud(list);
-        }
+        const list = cloudData ? (Array.isArray(cloudData) ? cloudData : Object.values(cloudData)) : [];
+        this.mergeEvaluationsFromCloud(list);
 
         const snapRows = await this.db.ref('tina_custom_user_rows').once('value');
         const cloudRows = snapRows.val();
