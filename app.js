@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Dropdowns Đăng Nhập & Phiên Làm Việc
   // ==========================================================================
   function initLoginDropdowns() {
-    const { loginDept, loginPosition, loginTitle, loginEvaluator } = DOM;
+    const { loginDept, loginPosition, loginTitle } = DOM;
     if (!loginDept || !loginPosition || !loginTitle) return;
 
     // 1. Nạp danh sách Khoa phòng - Bộ phận
@@ -159,128 +159,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updatePositions('');
-    restoreLoginDraft();
 
     loginDept.onchange = () => {
       updatePositions(loginDept.value);
-      saveLoginDraft();
     };
 
     loginPosition.onchange = () => {
       updateTitles(loginDept.value, loginPosition.value);
-      saveLoginDraft();
     };
-
-    loginTitle.onchange = () => {
-      saveLoginDraft();
-    };
-
-    if (loginEvaluator) {
-      loginEvaluator.oninput = debounce(() => {
-        saveLoginDraft();
-      }, 200);
-    }
   }
 
-  function saveLoginDraft() {
-    const draft = {
-      dept: DOM.loginDept?.value || '',
-      pos: DOM.loginPosition?.value || '',
-      title: DOM.loginTitle?.value || '',
-      evaluator: DOM.loginEvaluator?.value || ''
-    };
-    SafeStorage.set('tina_login_draft', draft);
-  }
+  // Đảm bảo xoá mọi session/draft cũ để mỗi lần truy cập link luôn ở giao diện login mặc định
+  SafeStorage.remove('tina_auth_session');
+  SafeStorage.remove('tina_login_draft');
 
-  function restoreLoginDraft() {
-    const draft = SafeStorage.get('tina_login_draft');
-    if (!draft) return;
-
-    const { loginDept, loginPosition, loginTitle, loginEvaluator } = DOM;
-
-    if (draft.dept && loginDept) {
-      loginDept.value = draft.dept;
-      if (loginPosition) {
-        if (KHOA_PHONG_HIERARCHY[draft.dept]) {
-          const availableTitles = Object.keys(KHOA_PHONG_HIERARCHY[draft.dept]);
-          loginPosition.innerHTML = '<option value="">-- Chọn Chức danh --</option>' +
-            availableTitles.map(p => `<option value="${p}">${p}</option>`).join('');
-        }
-        if (draft.pos) {
-          loginPosition.value = draft.pos;
-          if (loginTitle && KHOA_PHONG_HIERARCHY[draft.dept] && KHOA_PHONG_HIERARCHY[draft.dept][draft.pos]) {
-            const availableTitles = KHOA_PHONG_HIERARCHY[draft.dept][draft.pos];
-            loginTitle.innerHTML = '<option value="">-- Chọn Vị trí --</option>' +
-              availableTitles.map(t => `<option value="${t}">${t}</option>`).join('');
-          }
-          if (draft.title && loginTitle) {
-            loginTitle.value = draft.title;
-          }
-        }
-      }
-    }
-    if (draft.evaluator && loginEvaluator) {
-      loginEvaluator.value = draft.evaluator;
-    }
-  }
-
-  function restoreAuthSession() {
-    const savedSession = SafeStorage.get('tina_auth_session');
-    if (!savedSession || !savedSession.isLoggedIn || !savedSession.currentDept || !savedSession.currentPos || !savedSession.currentTitle || !savedSession.currentEvaluator) {
-      return;
-    }
-
-    appState.isLoggedIn = true;
-    appState.currentDept = savedSession.currentDept;
-    appState.currentPos = savedSession.currentPos;
-    appState.currentTitle = savedSession.currentTitle;
-    appState.currentEvaluator = savedSession.currentEvaluator;
-    appState.currentSessionEvalId = savedSession.currentSessionEvalId || null;
-    if (savedSession.currentPerms) {
-      appState.currentPerms = savedSession.currentPerms;
-    }
-
-    const { loginDept, loginPosition, loginTitle, loginEvaluator } = DOM;
-    if (loginDept) {
-      loginDept.value = savedSession.currentDept;
-      if (loginPosition) {
-        if (KHOA_PHONG_HIERARCHY[savedSession.currentDept]) {
-          const availableTitles = Object.keys(KHOA_PHONG_HIERARCHY[savedSession.currentDept]);
-          loginPosition.innerHTML = '<option value="">-- Chọn Chức danh --</option>' +
-            availableTitles.map(p => `<option value="${p}">${p}</option>`).join('');
-        }
-        loginPosition.value = savedSession.currentPos;
-      }
-      if (loginTitle) {
-        if (KHOA_PHONG_HIERARCHY[savedSession.currentDept] && KHOA_PHONG_HIERARCHY[savedSession.currentDept][savedSession.currentPos]) {
-          const availableTitles = KHOA_PHONG_HIERARCHY[savedSession.currentDept][savedSession.currentPos];
-          loginTitle.innerHTML = '<option value="">-- Chọn Vị trí --</option>' +
-            availableTitles.map(t => `<option value="${t}">${t}</option>`).join('');
-        }
-        loginTitle.value = savedSession.currentTitle;
-      }
-    }
-    if (loginEvaluator) {
-      loginEvaluator.value = savedSession.currentEvaluator;
-    }
-
-    if (DOM.loginScreen) DOM.loginScreen.style.display = 'none';
-    if (DOM.mainAppScreen) DOM.mainAppScreen.style.display = 'block';
-
-    if (DOM.activeText) {
-      DOM.activeText.textContent = `[${appState.currentDept}] - [${appState.currentPos}] - [${appState.currentTitle}]`;
-    }
-    if (DOM.comboHeader) DOM.comboHeader.style.display = 'inline-flex';
-
-    switchTab('tab-eval');
-    renderTreeTable();
-  }
-
-  // Khởi tạo Login & khôi phục phiên
+  // Khởi tạo Login & Giao diện ban đầu
   initLoginDropdowns();
   initTabs();
   refreshAllData();
-  restoreAuthSession();
 
   // Xử lý Form Đăng Nhập
   if (DOM.formLogin) {
@@ -297,26 +193,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (DOM.loginErrorAlert) DOM.loginErrorAlert.style.display = 'none';
+      // Khôi phục quyền đã đánh giá trước đó (nếu có trong hệ thống) cho tổ hợp này
+      const allEvals = TinaDataStore.getEvaluations();
+      const existingEval = allEvals.find(e => 
+        e.department === dept && e.position === pos && e.title === title && (e.evaluator || '').trim().toLowerCase() === evaluator.trim().toLowerCase()
+      ) || allEvals.find(e => 
+        e.department === dept && e.position === pos && e.title === title
+      );
+
+      if (existingEval) {
+        appState.currentSessionEvalId = existingEval.id;
+        appState.currentPerms = JSON.parse(JSON.stringify(existingEval.perms || {}));
+      } else {
+        appState.currentSessionEvalId = null;
+        appState.currentPerms = {};
+      }
 
       appState.isLoggedIn = true;
       appState.currentDept = dept;
       appState.currentPos = pos;
       appState.currentTitle = title;
       appState.currentEvaluator = evaluator;
-      appState.currentSessionEvalId = null;
-      appState.currentPerms = {};
-
-      SafeStorage.set('tina_auth_session', {
-        isLoggedIn: true,
-        currentDept: dept,
-        currentPos: pos,
-        currentTitle: title,
-        currentEvaluator: evaluator,
-        currentSessionEvalId: null,
-        currentPerms: {}
-      });
-      SafeStorage.remove('tina_login_draft');
 
       if (DOM.loginScreen) DOM.loginScreen.style.display = 'none';
       if (DOM.mainAppScreen) DOM.mainAppScreen.style.display = 'block';
@@ -358,6 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (DOM.loginScreen) DOM.loginScreen.style.display = 'flex';
     if (DOM.comboHeader) DOM.comboHeader.style.display = 'none';
     if (DOM.mobileFloatingSaveBar) DOM.mobileFloatingSaveBar.style.display = 'none';
+
+    renderTreeTable();
+    updateEvalCountBadge();
 
     ToastManager.show('Đã thoát khỏi tổ hợp làm việc', 'info');
   });
@@ -743,14 +643,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     TinaDataStore.saveOrUpdateEvaluation(newEval);
-
-    const savedSession = SafeStorage.get('tina_auth_session');
-    if (savedSession) {
-      savedSession.currentSessionEvalId = currentEvalId;
-      savedSession.currentPerms = appState.currentPerms;
-      SafeStorage.set('tina_auth_session', savedSession);
-    }
-
     refreshAllData();
 
     if (isUpdate) {
