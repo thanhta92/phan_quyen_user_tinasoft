@@ -103,6 +103,9 @@ function getUserDataRows() {
 function saveUserDataRows(rows) {
   try {
     localStorage.setItem('tina_custom_user_rows_v1', JSON.stringify(rows));
+    if (window.TinaFirebase && typeof window.TinaFirebase.saveCustomUserRows === 'function') {
+      window.TinaFirebase.saveCustomUserRows(rows);
+    }
   } catch (e) {
     console.error('Lỗi ghi custom user rows:', e);
   }
@@ -2662,6 +2665,12 @@ class TinaDataStore {
       records.unshift(record);
     }
     this.saveEvaluations(records);
+
+    // Tự động đẩy lên Firebase Realtime Cloud
+    if (window.TinaFirebase && typeof window.TinaFirebase.saveEvaluation === 'function') {
+      window.TinaFirebase.saveEvaluation(record);
+    }
+
     return record;
   }
 
@@ -2673,10 +2682,18 @@ class TinaDataStore {
     let records = this.getEvaluations();
     records = records.filter(r => r.id !== id);
     this.saveEvaluations(records);
+
+    // Tự động xóa trên Firebase Realtime Cloud
+    if (window.TinaFirebase && typeof window.TinaFirebase.deleteEvaluation === 'function') {
+      window.TinaFirebase.deleteEvaluation(id);
+    }
   }
 
   static clearAll() {
     localStorage.removeItem(this.STORAGE_KEY);
+    if (window.TinaFirebase && typeof window.TinaFirebase.clearAllEvaluations === 'function') {
+      window.TinaFirebase.clearAllEvaluations();
+    }
   }
 
   // 5. Quy Tắc Tổng Hợp Kết Quả (Rule PQCN Aggregation)

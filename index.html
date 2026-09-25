@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=200">
+  <link rel="stylesheet" href="style.css?v=204">
 </head>
 
 <body>
@@ -26,6 +26,18 @@
 
     <!-- Right Header Actions -->
     <div class="header-actions">
+      <!-- Cloud Sync Realtime Badge -->
+      <div id="cloud-sync-status" class="cloud-sync-badge status-offline" title="Trạng thái đồng bộ đám mây (Click để xem chi tiết / cấu hình)">
+        <span class="sync-dot"></span>
+        <span class="sync-text">Cloud Sync</span>
+      </div>
+
+      <!-- Cloud Sync Config Button -->
+      <button class="btn-icon" id="btn-cloud-config" title="Cấu hình / Đồng bộ Firebase Cloud"
+        style="width: 34px; height: 34px; font-size: 14px; color: #38bdf8;">
+        <i class="fas fa-cloud"></i>
+      </button>
+
       <!-- Active Combo Badge + Nút Thoát (Nằm ở góc phải trên cùng màn hình) -->
       <div id="header-combo-info" class="header-combo-badge" style="display: none;">
         <i class="fas fa-user-check" style="color: var(--status-success);"></i>
@@ -341,17 +353,17 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
         </div>
       </section>
 
-      <!-- Mobile Floating Action Bar (Chỉ hiển thị trên Mobile ở Tab Đánh giá) -->
-      <div id="mobile-floating-save-bar" class="mobile-floating-save-bar" style="display: none;">
-        <button type="button" class="btn btn-primary btn-mobile-save" id="btn-save-mobile">
-          <i class="fas fa-save"></i> <span>LƯU ĐÁNH GIÁ</span>
-          <span class="badge-eval-count" id="mobile-save-count">0</span>
-        </button>
-      </div>
-
     </section>
 
   </main>
+
+  <!-- Mobile Floating Action Bar (Cố định ở đáy màn hình trên Mobile khi Đăng nhập) -->
+  <div id="mobile-floating-save-bar" class="mobile-floating-save-bar" style="display: none;">
+    <button type="button" class="btn btn-primary btn-mobile-save" id="btn-save-mobile">
+      <i class="fas fa-save"></i> <span>LƯU ĐÁNH GIÁ</span>
+      <span class="badge-eval-count" id="mobile-save-count">0</span>
+    </button>
+  </div>
 
   <!-- MODAL: YÊU CẦU NHẬP MẬT KHẨU DATA USER (877598) -->
   <div class="modal-overlay" id="modal-data-user-password">
@@ -536,12 +548,102 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
     </div>
   </div>
 
+  <!-- MODAL: CẤU HÌNH & ĐỒNG BỘ DỮ LIỆU ĐÁM MÂY (FIREBASE CLOUD SYNC) -->
+  <div class="modal-overlay" id="modal-cloud-sync">
+    <div class="modal-card" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="font-size: 16px;">
+          <i class="fas fa-cloud-arrow-up" style="color: #38bdf8;"></i> Đồng Bộ Đám Mây (Firebase Realtime Cloud)
+        </h3>
+        <button class="modal-close" onclick="ModalManager.close('modal-cloud-sync')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <!-- Trạng thái & Thao tác nhanh -->
+        <div class="cloud-sync-card-status">
+          <div class="cloud-status-row">
+            <div>
+              <div style="font-weight: 700; font-size: 15px;">Trạng thái kết nối:</div>
+              <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+                Đồng bộ tức thì mọi đánh giá giữa Web & Điện thoại.
+              </div>
+            </div>
+            <div id="cloud-modal-status-badge" class="cloud-status-tag">
+              <i class="fas fa-circle-dot"></i> <span id="cloud-modal-status-text">Đang kiểm tra...</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+            <button class="btn btn-success btn-sm" id="btn-cloud-pull" style="flex: 1; min-width: 160px; font-weight: 600;">
+              <i class="fas fa-cloud-arrow-down"></i> Tải dữ liệu từ Cloud về
+            </button>
+            <button class="btn btn-primary btn-sm" id="btn-cloud-push" style="flex: 1; min-width: 160px; font-weight: 600;">
+              <i class="fas fa-cloud-arrow-up"></i> Đẩy dữ liệu máy lên Cloud
+            </button>
+          </div>
+        </div>
+
+        <!-- Form cấu hình Firebase -->
+        <div style="margin-top: 20px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 10px; color: var(--primary);">
+            <i class="fas fa-sliders"></i> Cấu hình kết nối Firebase Realtime Database
+          </div>
+
+          <div class="cloud-form-group">
+            <label class="cloud-label">Database URL (Bắt buộc):</label>
+            <input type="text" class="form-control form-control-sm" id="cfg-firebase-db-url"
+              placeholder="https://tina-phanquyen-default-rtdb.asia-southeast1.firebasedatabase.app">
+            <small style="color: var(--text-muted); font-size: 11px;">URL của Firebase Realtime Database (Location: Singapore hoặc US).</small>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
+            <div class="cloud-form-group">
+              <label class="cloud-label">Project ID:</label>
+              <input type="text" class="form-control form-control-sm" id="cfg-firebase-project-id"
+                placeholder="tina-phanquyen">
+            </div>
+            <div class="cloud-form-group">
+              <label class="cloud-label">API Key (Tùy chọn):</label>
+              <input type="text" class="form-control form-control-sm" id="cfg-firebase-api-key"
+                placeholder="AIzaSy...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Hướng dẫn ngắn -->
+        <div class="cloud-help-box">
+          <div style="font-weight: 600; color: #0284c7; margin-bottom: 4px;">
+            <i class="fas fa-info-circle"></i> Cách thức hoạt động:
+          </div>
+          <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--text-muted);">
+            Khi kích hoạt Cloud Sync, bất kỳ đánh giá nào thực hiện trên <b>Điện thoại</b> hay <b>Máy tính</b> sẽ được cập nhật và tổng hợp chung vào 1 cơ sở dữ liệu duy nhất theo thời gian thực mà không cần nạp lại trang.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button class="btn btn-secondary btn-sm" id="btn-cloud-reset-default">
+          <i class="fas fa-rotate-left"></i> Cấu hình mặc định
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary btn-sm" onclick="ModalManager.close('modal-cloud-sync')">Đóng</button>
+          <button class="btn btn-primary btn-sm" id="btn-cloud-save-config" style="font-weight: 700; padding: 6px 18px;">
+            <i class="fas fa-floppy-disk"></i> Lưu & Kết nối lại
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- External Libraries: ExcelJS for Advanced Multi-Sheet Excel Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
+  <!-- Firebase Compat SDK v10.8.0 for Realtime Multi-Device Sync -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
   <!-- App Core JavaScript Files -->
-  <script src="lib.js?v=200"></script>
-  <script src="app.js?v=200"></script>
+  <script src="firebase-sync.js?v=202"></script>
+  <script src="lib.js?v=202"></script>
+  <script src="app.js?v=202"></script>
 
 </body>
 

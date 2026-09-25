@@ -277,6 +277,10 @@ body {
   cursor: pointer;
 }
 
+.mobile-floating-save-bar {
+  display: none;
+}
+
 /* Main App Body */
 .app-body {
   max-width: 1600px;
@@ -1373,12 +1377,17 @@ body {
     padding: 10px 18px !important;
   }
 
-  /* 4. Toolbar & Tab Navigation trên Mobile */
+  /* 4. Toolbar & Tab Navigation trên Mobile (Cố định khi cuộn) */
   .compact-toolbar-row {
+    position: sticky !important;
+    top: 48px !important;
+    z-index: 95 !important;
+    background: var(--bg-primary) !important;
+    padding: 4px 0 6px 0 !important;
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 8px !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 6px !important;
   }
 
   .tab-nav-compact {
@@ -1423,22 +1432,28 @@ body {
     width: 100% !important;
   }
 
-  /* Header sticky công cụ tìm kiếm và nút thao tác trên mobile */
+  /* Header sticky công cụ tìm kiếm và nút thao tác trên mobile (Cố định ngay dưới Tab Bar) */
   .perm-table-compact thead {
     display: block !important;
     position: sticky !important;
-    top: 48px !important;
-    z-index: 70 !important;
+    top: 96px !important;
+    z-index: 90 !important;
     background: var(--bg-surface) !important;
-    border: 1px solid var(--border-color) !important;
+    border: 1.5px solid var(--border-color) !important;
     border-radius: 10px !important;
     padding: 8px 10px !important;
-    margin-bottom: 10px !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35) !important;
   }
 
   [data-theme="dark"] .perm-table-compact thead {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+    background: #111827 !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  [data-theme="light"] .perm-table-compact thead {
+    background: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
   }
 
   .perm-table-compact thead tr.header-inline-row {
@@ -1712,21 +1727,37 @@ body {
     border-radius: 6px !important;
   }
 
-  /* 6. BOTTOM FLOATING ACTION BAR TRÊN MOBILE */
+  /* 6. BOTTOM FLOATING ACTION BAR TRÊN MOBILE (CỐ ĐỊNH 100% CẢ KHI CUỘN LÊN VÀ CUỘN XUỐNG) */
   .mobile-floating-save-bar {
-    display: flex !important;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-glass);
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    background: var(--bg-surface) !important;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-top: 1px solid var(--border-color);
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px;
-    z-index: 990;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
-    justify-content: center;
+    border-top: 1.5px solid var(--border-color) !important;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    z-index: 99999 !important;
+    box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.45) !important;
+    justify-content: center !important;
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+    will-change: transform;
+    pointer-events: auto !important;
+  }
+
+  [data-theme="dark"] .mobile-floating-save-bar {
+    background: #111827 !important;
+    border-top-color: #374151 !important;
+    box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.65) !important;
+  }
+
+  [data-theme="light"] .mobile-floating-save-bar {
+    background: #ffffff !important;
+    border-top-color: #cbd5e1 !important;
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.12) !important;
   }
 
   .btn-mobile-save {
@@ -1793,4 +1824,131 @@ body {
     max-width: 100% !important;
   }
 }
+
+/* ==========================================================================
+   FIREBASE REALTIME CLOUD SYNC STYLES
+   ========================================================================== */
+.cloud-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface-elevated);
+  user-select: none;
+}
+
+.cloud-sync-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cloud-sync-badge.status-online {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.cloud-sync-badge.status-online .sync-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulse-dot 2s infinite;
+}
+
+.cloud-sync-badge.status-syncing {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.cloud-sync-badge.status-syncing .sync-dot {
+  background: #38bdf8;
+  animation: pulse-dot 0.8s infinite;
+}
+
+.cloud-sync-badge.status-offline,
+.cloud-sync-badge.status-unconfigured {
+  background: rgba(100, 116, 139, 0.12);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: var(--text-muted);
+}
+
+.cloud-sync-badge.status-offline .sync-dot {
+  background: #94a3b8;
+}
+
+.cloud-sync-badge.status-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.cloud-sync-badge.status-error .sync-dot {
+  background: #ef4444;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+/* Modal Cloud Sync Elements */
+.cloud-sync-card-status {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.cloud-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cloud-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.cloud-form-group {
+  margin-bottom: 8px;
+}
+
+.cloud-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-main);
+}
+
+.cloud-help-box {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(56, 189, 248, 0.08);
+  border-left: 3px solid #38bdf8;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
 

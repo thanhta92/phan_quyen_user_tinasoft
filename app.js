@@ -193,21 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Khôi phục quyền đã đánh giá trước đó (nếu có trong hệ thống) cho tổ hợp này
-      const allEvals = TinaDataStore.getEvaluations();
-      const existingEval = allEvals.find(e => 
-        e.department === dept && e.position === pos && e.title === title && (e.evaluator || '').trim().toLowerCase() === evaluator.trim().toLowerCase()
-      ) || allEvals.find(e => 
-        e.department === dept && e.position === pos && e.title === title
-      );
-
-      if (existingEval) {
-        appState.currentSessionEvalId = existingEval.id;
-        appState.currentPerms = JSON.parse(JSON.stringify(existingEval.perms || {}));
-      } else {
-        appState.currentSessionEvalId = null;
-        appState.currentPerms = {};
-      }
+      // Mỗi lần đăng nhập là một đợt đánh giá mới của người dùng:
+      // - Cột "Chức năng yêu cầu" (bên trái) luôn reset trống trơn để người này tự do tích chọn
+      // - Cột "Chức năng đã yêu cầu" (bên phải) sẽ tự động hiển thị tổng hợp (OR) các quyền đã tích của tất cả các đợt trước đó
+      appState.currentSessionEvalId = null;
+      appState.currentPerms = {};
 
       appState.isLoggedIn = true;
       appState.currentDept = dept;
@@ -627,7 +617,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isUpdate = !!appState.currentSessionEvalId;
     if (!appState.currentSessionEvalId) {
-      appState.currentSessionEvalId = `EVAL-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+      const allEvals = TinaDataStore.getEvaluations() || [];
+      let newId = '';
+      do {
+        newId = `EVAL-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+      } while (allEvals.some(e => e.id === newId));
+      appState.currentSessionEvalId = newId;
     }
 
     const currentEvalId = appState.currentSessionEvalId;
@@ -646,9 +641,9 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshAllData();
 
     if (isUpdate) {
-      ToastManager.show(`Đã cập nhật (lưu đè) thành công dữ liệu phân quyền [${currentEvalId}] cho tổ hợp [${appState.currentDept} - ${appState.currentPos} - ${appState.currentTitle}]`, 'success', 'Cập Nhật Thành Công');
+      ToastManager.show(`Đã cập nhật dữ liệu cho đợt đánh giá [${currentEvalId}]`, 'success', 'Cập Nhật Thành Công');
     } else {
-      ToastManager.show(`Đã lưu thành công dữ liệu thu thập phân quyền [${currentEvalId}] cho tổ hợp [${appState.currentDept} - ${appState.currentPos} - ${appState.currentTitle}]`, 'success', 'Lưu Thành Công');
+      ToastManager.show(`Đã lưu thành công đợt đánh giá mới [${currentEvalId}] cho [${appState.currentDept} - ${appState.currentPos} - ${appState.currentTitle}]`, 'success', 'Lưu Thành Công');
     }
 
     renderTreeTable();
@@ -1235,6 +1230,131 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ==========================================================================
+  // 10. FIREBASE REALTIME CLOUD SYNC CONTROLLER
+  // ==========================================================================
+  function initCloudSyncController() {
+    // 1. Khởi tạo kết nối Firebase
+    if (window.TinaFirebase && typeof window.TinaFirebase.init === 'function') {
+      window.TinaFirebase.init();
+    }
+
+    // 2. Lắng nghe dữ liệu đồng bộ từ Cloud gửi về
+    window.addEventListener('tina-data-synced', (e) => {
+      console.log('[App] Nhận dữ liệu đồng bộ từ Cloud:', e.detail);
+      
+      // Cập nhật lại kho dữ liệu
+      appState.evaluations = TinaDataStore.getEvaluations();
+      refreshAllData();
+
+      // Nếu đang mở bảng tổng hợp, cập nhật lại
+      if (typeof renderSummaryTables === 'function' && appState.isUnlocked) {
+        renderSummaryTables();
+      }
+
+      // Nếu đang trong phiên đánh giá của một tổ hợp, cập nhật lại ma trận
+      if (appState.isLoggedIn) {
+        renderTreeTable();
+      }
+
+      // Nếu có cập nhật danh sách tổ hợp người dùng
+      if (e.detail && e.detail.type === 'user_rows') {
+        initLoginDropdowns();
+      }
+
+      ToastManager.show('Dữ liệu đã được tự động đồng bộ từ Cloud Realtime!', 'info', 'Đồng Bộ Đám Mây');
+    });
+
+    // 3. Mở Modal Cấu hình Cloud khi click vào Badge hoặc Nút Cloud trên Header
+    const openCloudConfigModal = () => {
+      if (!window.TinaFirebase) return;
+      const cfg = window.TinaFirebase.getConfig();
+
+      const inputUrl = document.getElementById('cfg-firebase-db-url');
+      const inputProj = document.getElementById('cfg-firebase-project-id');
+      const inputKey = document.getElementById('cfg-firebase-api-key');
+
+      if (inputUrl) inputUrl.value = cfg.databaseURL || '';
+      if (inputProj) inputProj.value = cfg.projectId || '';
+      if (inputKey) inputKey.value = cfg.apiKey || '';
+
+      ModalManager.open('modal-cloud-sync');
+    };
+
+    document.getElementById('cloud-sync-status')?.addEventListener('click', openCloudConfigModal);
+    document.getElementById('btn-cloud-config')?.addEventListener('click', openCloudConfigModal);
+
+    // 4. Nút Lưu Cấu hình Cloud
+    document.getElementById('btn-cloud-save-config')?.addEventListener('click', () => {
+      if (!window.TinaFirebase) return;
+
+      const databaseURL = (document.getElementById('cfg-firebase-db-url')?.value || '').trim();
+      const projectId = (document.getElementById('cfg-firebase-project-id')?.value || '').trim();
+      const apiKey = (document.getElementById('cfg-firebase-api-key')?.value || '').trim();
+
+      if (!databaseURL && !projectId) {
+        ToastManager.show('Vui lòng nhập Database URL hoặc Project ID của Firebase!', 'warning');
+        return;
+      }
+
+      const newCfg = {
+        databaseURL,
+        projectId,
+        apiKey
+      };
+
+      window.TinaFirebase.saveConfig(newCfg);
+      ToastManager.show('Đang kết nối lại với Firebase Database...', 'info');
+      
+      window.TinaFirebase.init();
+      ModalManager.close('modal-cloud-sync');
+    });
+
+    // 5. Nút Khôi phục cấu hình mặc định
+    document.getElementById('btn-cloud-reset-default')?.addEventListener('click', () => {
+      if (confirm('Bạn có muốn đặt lại cấu hình Firebase Cloud mặc định của hệ thống?')) {
+        localStorage.removeItem('tina_firebase_config_v1');
+        if (window.TinaFirebase) {
+          const cfg = window.TinaFirebase.getConfig();
+          const inputUrl = document.getElementById('cfg-firebase-db-url');
+          const inputProj = document.getElementById('cfg-firebase-project-id');
+          const inputKey = document.getElementById('cfg-firebase-api-key');
+          if (inputUrl) inputUrl.value = cfg.databaseURL || '';
+          if (inputProj) inputProj.value = cfg.projectId || '';
+          if (inputKey) inputKey.value = cfg.apiKey || '';
+          window.TinaFirebase.init();
+        }
+        ToastManager.show('Đã khôi phục cấu hình Firebase mặc định', 'info');
+      }
+    });
+
+    // 6. Nút Tải dữ liệu từ Cloud về
+    document.getElementById('btn-cloud-pull')?.addEventListener('click', async () => {
+      if (!window.TinaFirebase) return;
+      ToastManager.show('Đang tải dữ liệu từ Cloud...', 'info');
+      const ok = await window.TinaFirebase.pullAllFromCloud();
+      if (ok) {
+        ToastManager.show('Tải dữ liệu từ Cloud thành công!', 'success');
+      } else {
+        ToastManager.show('Không thể tải dữ liệu từ Cloud. Vui lòng kiểm tra kết nối mạng!', 'danger');
+      }
+    });
+
+    // 7. Nút Đẩy dữ liệu máy lên Cloud
+    document.getElementById('btn-cloud-push')?.addEventListener('click', async () => {
+      if (!window.TinaFirebase) return;
+      ToastManager.show('Đang đẩy dữ liệu máy lên Cloud...', 'info');
+      const ok = await window.TinaFirebase.pushAllLocalToCloud();
+      if (ok) {
+        ToastManager.show('Đã đẩy toàn bộ dữ liệu lên Cloud thành công!', 'success');
+      } else {
+        ToastManager.show('Không thể đẩy dữ liệu lên Cloud. Vui lòng kiểm tra kết nối!', 'danger');
+      }
+    });
+  }
+
   initDataUserManagement();
+  initCloudSyncController();
 
 });
+
