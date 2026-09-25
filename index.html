@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=214">
+  <link rel="stylesheet" href="style.css?v=216">
 </head>
 
 <body>
@@ -26,14 +26,14 @@
 
     <!-- Right Header Actions -->
     <div class="header-actions">
-      <!-- Cloud Sync Realtime Badge -->
-      <div id="cloud-sync-status" class="cloud-sync-badge status-offline" style="cursor: pointer;" title="Bấm để mở bảng đồng bộ Cloud">
+      <!-- Cloud Sync Realtime Badge (Hidden - Runs in Background) -->
+      <div id="cloud-sync-status" class="cloud-sync-badge status-offline" style="display: none !important;" title="Bấm để mở bảng đồng bộ Cloud">
         <span class="sync-dot"></span>
         <span class="sync-text">Cloud Realtime</span>
       </div>
 
-      <!-- Cloud Sync Config Button -->
-      <button class="btn-icon" id="btn-cloud-config" title="Cấu hình kết nối Cloud Realtime">
+      <!-- Cloud Sync Config Button (Hidden - Runs in Background) -->
+      <button class="btn-icon" id="btn-cloud-config" style="display: none !important;" title="Cấu hình kết nối Cloud Realtime">
         <i class="fas fa-cloud"></i>
       </button>
 
@@ -697,9 +697,9 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <!-- App Core JavaScript Files -->
-  <script src="firebase-sync.js?v=214"></script>
-  <script src="lib.js?v=214"></script>
-  <script src="app.js?v=214"></script>
+  <script src="firebase-sync.js?v=216"></script>
+  <script src="lib.js?v=216"></script>
+  <script src="app.js?v=216"></script>
 
 </body>
 

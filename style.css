@@ -1801,19 +1801,9 @@ body {
 /* ==========================================================================
    FIREBASE REALTIME CLOUD SYNC STYLES
    ========================================================================== */
-.cloud-sync-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-fast);
-  border: 1px solid var(--border-color);
-  background: var(--bg-surface-elevated);
-  user-select: none;
+.cloud-sync-badge,
+#btn-cloud-config {
+  display: none !important;
 }
 
 .cloud-sync-badge:hover {

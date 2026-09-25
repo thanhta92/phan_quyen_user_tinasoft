@@ -4,7 +4,7 @@
  */
 
 // 1. Mật khẩu bảo mật
-const SECURITY_PASSWORD = 'thanhta92';
+const SECURITY_PASSWORD = 'bsta92';
 const DATA_USER_PASSWORD = '877598';
 
 // 2. Dữ liệu Danh mục gốc Khoa phòng - Chức danh - Vị trí (Từ file Data_khoaphong.docx)
