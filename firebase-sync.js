@@ -157,70 +157,18 @@
       });
     },
 
-    // Gộp dữ liệu đánh giá 2 chiều giữa Cloud và Local
+    // Gộp dữ liệu đánh giá từ Cloud vào Local
     mergeEvaluationsFromCloud(cloudList) {
-      if (!Array.isArray(cloudList)) cloudList = [];
+      const cleanList = Array.isArray(cloudList) ? cloudList.filter(item => item && item.id) : [];
+      cleanList.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
-      const localList = TinaDataStore.getEvaluations() || [];
-      const map = new Map();
-      const cloudIds = new Set(cloudList.map(c => c && c.id).filter(Boolean));
+      // Lưu danh sách chuẩn từ Cloud vào LocalStorage
+      TinaDataStore.saveEvaluations(cleanList);
 
-      // Đưa local vào map
-      localList.forEach(item => {
-        if (item && item.id) map.set(item.id, item);
-      });
-
-      let hasNewFromCloud = false;
-      let hasLocalMissingOnCloud = false;
-
-      // 1. Gộp dữ liệu từ Cloud vào map
-      cloudList.forEach(cloudItem => {
-        if (!cloudItem || !cloudItem.id) return;
-        const localItem = map.get(cloudItem.id);
-        if (!localItem) {
-          map.set(cloudItem.id, cloudItem);
-          hasNewFromCloud = true;
-        } else {
-          const cloudTime = new Date(cloudItem.updatedAt || cloudItem.createdAt || 0).getTime();
-          const localTime = new Date(localItem.updatedAt || localItem.createdAt || 0).getTime();
-          if (cloudTime > localTime) {
-            map.set(cloudItem.id, cloudItem);
-            hasNewFromCloud = true;
-          }
-        }
-      });
-
-      // 2. Kiểm tra xem Local có bản ghi nào mà Cloud chưa có không
-      localList.forEach(localItem => {
-        if (localItem && localItem.id && !cloudIds.has(localItem.id)) {
-          hasLocalMissingOnCloud = true;
-        }
-      });
-
-      const merged = Array.from(map.values()).sort((a, b) => {
-        return (b.createdAt || '').localeCompare(a.createdAt || '');
-      });
-
-      if (hasNewFromCloud || localList.length !== map.size) {
-        // Lưu vào LocalStorage
-        TinaDataStore.saveEvaluations(merged);
-
-        // Bắn sự kiện thông báo cho App cập nhật UI
-        window.dispatchEvent(new CustomEvent('tina-data-synced', {
-          detail: { type: 'evaluations', count: merged.length }
-        }));
-      }
-
-      // 3. Nếu Local có bản ghi mà Cloud chưa có -> Tự động đẩy lên Cloud ngay!
-      if (hasLocalMissingOnCloud && this.db && this.isConnected) {
-        const uploadMap = {};
-        merged.forEach(item => {
-          if (item && item.id) uploadMap[item.id] = item;
-        });
-        this.db.ref('tina_evaluations').update(uploadMap).then(() => {
-          console.log('[CloudSync] Đã tự động đồng bộ đẩy toàn bộ đánh giá từ thiết bị lên Cloud!');
-        }).catch(err => console.warn('[CloudSync] Lỗi auto-upload lên cloud:', err));
-      }
+      // Bắn sự kiện thông báo cho App cập nhật UI
+      window.dispatchEvent(new CustomEvent('tina-data-synced', {
+        detail: { type: 'evaluations', count: cleanList.length }
+      }));
     },
 
     // Gộp danh sách người dùng tùy chỉnh từ Cloud vào Local
