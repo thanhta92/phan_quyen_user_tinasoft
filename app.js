@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <i class="fas fa-pen-to-square pill-icon"></i> Nhập
                 </button>
                 <button type="button" class="btn-perm-pill btn-perm-xuat ${p.xuat ? 'active' : ''}" data-id="${node.id}" data-action="xuat" title="Đánh giá quyền Xuất báo cáo">
-                  <i class="fas fa-file-export pill-icon"></i> Xuất
+                  <i class="fas fa-file-export pill-icon"></i> Xuất báo cáo
                 </button>
               </div>
             </td>
@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="perm-pill-group ref-group">
                 <span class="ref-perm-pill ref-perm-xem ${refP.xem ? 'active' : 'inactive'}" title="${refP.xem ? 'Tổ hợp này đã yêu cầu quyền Xem' : 'Chưa yêu cầu'}">Xem</span>
                 <span class="ref-perm-pill ref-perm-nhap ${refP.nhap ? 'active' : 'inactive'}" title="${refP.nhap ? 'Tổ hợp này đã yêu cầu quyền Nhập' : 'Chưa yêu cầu'}">Nhập</span>
-                <span class="ref-perm-pill ref-perm-xuat ${refP.xuat ? 'active' : 'inactive'}" title="${refP.xuat ? 'Tổ hợp này đã yêu cầu quyền Xuất báo cáo' : 'Chưa yêu cầu'}">Xuất</span>
+                <span class="ref-perm-pill ref-perm-xuat ${refP.xuat ? 'active' : 'inactive'}" title="${refP.xuat ? 'Tổ hợp này đã yêu cầu quyền Xuất báo cáo' : 'Chưa yêu cầu'}">Xuất báo cáo</span>
               </div>
             </td>
           </tr>
