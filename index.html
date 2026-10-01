@@ -273,22 +273,25 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
             </div>
           </div>
 
-          <!-- HÀNG 2: Vị trí 2 (Khoa phòng đã đánh giá) và Vị trí 3 (Khoa phòng chưa đánh giá) -->
+          <!-- HÀNG 2: Vị trí 2 (Khoa phòng đã đánh giá), Vị trí 3 (Khoa phòng chưa đánh giá) & Vị trí 4 (Tổ hợp user chưa đánh giá) -->
           <div class="toolbar"
-            style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            style="margin-bottom: 12px; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 14px;">
             <!-- Vị trí 2: Khoa phòng đã đánh giá -->
             <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
               <label style="font-size: 13.5px; font-weight: 700; color: #f59e0b; white-space: nowrap;">
                 Khoa phòng đã đánh giá
               </label>
               <select class="form-control form-control-sm summary-dept-select-control" id="filter-summary-combo"
-                style="min-width: 330px; max-width: 460px; font-weight: 700; font-size: 13px; height: 35px; cursor: pointer; border-radius: 6px;">
+                style="min-width: 280px; max-width: 420px; font-weight: 700; font-size: 13px; height: 35px; cursor: pointer; border-radius: 6px;">
                 <option value="">-- Xem tất cả các Khoa phòng (12 tổ hợp) --</option>
               </select>
             </div>
 
             <!-- Vị trí 3: Khoa phòng chưa đánh giá -->
             <div id="unevaluated-depts-box" style="display: flex; align-items: center; gap: 8px;"></div>
+
+            <!-- Vị trí 4: Tổ hợp user chưa đánh giá -->
+            <div id="unevaluated-users-box" style="display: flex; align-items: center; gap: 8px;"></div>
           </div>
 
           <div class="perm-table-wrapper tree-viewport-maximized summary-table-wrapper">

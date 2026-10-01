@@ -3099,6 +3099,7 @@ class Exporter {
 
       // Gom nhóm các tổ hợp theo Khoa/Phòng
       const deptsMap = {};
+      const allUserRows = typeof getUserDataRows === 'function' ? getUserDataRows() : [];
 
       // Tạo các khoa từ danh mục chuẩn trước
       KHOA_PHONG_LIST.forEach(dept => {
@@ -3124,19 +3125,28 @@ class Exporter {
       deptNames.forEach(deptName => {
         let combos = deptsMap[deptName] || [];
 
-        // Nếu khoa này chưa có đánh giá nào, khởi tạo danh sách tổ hợp chuẩn để sẵn sàng biểu mẫu
+        // Nếu khoa này chưa có đánh giá nào, khởi tạo danh sách tổ hợp chuẩn từ Data User để sẵn sàng biểu mẫu
         if (combos.length === 0) {
-          VI_TRI_LIST.forEach(pos => {
-            CHUC_VU_LIST.forEach(title => {
+          const deptUserRows = allUserRows.filter(r => (r.dept || '').trim().toLowerCase() === deptName.trim().toLowerCase());
+          if (deptUserRows.length > 0) {
+            deptUserRows.forEach(r => {
               combos.push({
                 department: deptName,
-                position: pos,
-                title: title,
+                position: r.title, // Chức danh (ví dụ: Dược sĩ, BS...)
+                title: r.position,  // Vị trí (ví dụ: Quản lý, Nhân viên...)
                 evalCount: 0,
                 perms: {}
               });
             });
-          });
+          } else {
+            combos.push({
+              department: deptName,
+              position: 'Chưa xác định',
+              title: 'Nhân viên',
+              evalCount: 0,
+              perms: {}
+            });
+          }
         }
 
         // Tên Sheet hợp lệ trong Excel: tối đa 31 ký tự, không chứa ký tự cấm: \ / ? * : [ ]

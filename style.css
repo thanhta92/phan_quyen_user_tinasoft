@@ -80,8 +80,9 @@ body {
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-main);
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   line-height: 1.4;
 }
 
@@ -282,7 +283,9 @@ body {
   max-width: 1600px;
   margin: 0 auto;
   padding: 8px 12px;
-  height: calc(100vh - 44px);
+  min-height: calc(100vh - 44px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .header-auth-group {
@@ -299,7 +302,8 @@ body {
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 80px);
-  padding: 20px;
+  padding: 24px 16px 48px;
+  width: 100%;
 }
 
 .login-card {
@@ -309,6 +313,7 @@ body {
   padding: 36px 40px;
   max-width: 520px;
   width: 100%;
+  margin: auto;
   box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -1331,8 +1336,8 @@ body {
 
   /* 3. Màn hình Đăng nhập (Login) trên Mobile */
   .login-wrapper {
-    min-height: calc(100vh - 70px) !important;
-    padding: 10px !important;
+    min-height: calc(100vh - 60px) !important;
+    padding: 16px 12px 40px !important;
   }
 
   .login-card {

@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryTableBody: document.getElementById('summary-table-body'),
     filterSummaryCombo: document.getElementById('filter-summary-combo'),
     unevaluatedDeptsBox: document.getElementById('unevaluated-depts-box'),
+    unevaluatedUsersBox: document.getElementById('unevaluated-users-box'),
     tabSummaryTitle: document.getElementById('tab-summary-title'),
     historyTableBody: document.getElementById('history-table-body'),
     historyCountBadge: document.getElementById('history-count-badge'),
@@ -872,9 +873,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const evaluatedCount = evaluatedDepts.length;
     const unevaluatedDepts = allDepts.filter(d => !evaluatedDeptsSet.has(d));
 
+    // Tổ hợp User (allRows)
+    const norm = (s) => (s || '').toString().trim().toLowerCase();
+
+    const unevaluatedUsers = allRows.filter(r => {
+      const rDept = norm(r.dept);
+      const rTitle = norm(r.title); // Chức danh (ví dụ: BS SPK, NHS...)
+      const rPos = norm(r.position); // Vị trí (ví dụ: Quản lý, Nhân viên...)
+
+      const isEvaluated = evaluations.some(e => {
+        const eDept = norm(e.department);
+        const ePos = norm(e.position);
+        const eTitle = norm(e.title);
+
+        if (eDept !== rDept) return false;
+        // So khớp 2 chiều giữa Chức danh và Vị trí để đảm bảo tính chính xác tuyệt đối
+        return (ePos === rTitle && eTitle === rPos) || (ePos === rPos && eTitle === rTitle);
+      });
+
+      return !isEvaluated;
+    });
+    const totalUsersCount = allRows.length;
+    const evaluatedUsersCount = totalUsersCount - unevaluatedUsers.length;
+
     // 1. Cập nhật nhãn nút Tab 2
     if (DOM.tabSummaryTitle) {
-      DOM.tabSummaryTitle.textContent = `Tổng hợp dữ liệu (${evaluatedCount}/${totalDeptsCount} khoa phòng đã đánh giá)`;
+      DOM.tabSummaryTitle.textContent = `Tổng hợp dữ liệu (${evaluatedCount}/${totalDeptsCount} khoa phòng • ${evaluatedUsersCount}/${totalUsersCount} user đã đánh giá)`;
     }
 
     // 2. Cập nhật Box Khoa phòng chưa đánh giá trong Tab 2
@@ -893,7 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <label style="font-size: 13.5px; font-weight: 700; color: #f59e0b; white-space: nowrap;">
               Khoa phòng chưa đánh giá
             </label>
-            <select id="select-unevaluated-dept-list" class="form-control form-control-sm unevaluated-select-control" style="min-width: 330px; max-width: 460px; font-weight: 700; font-size: 13px; height: 35px; cursor: pointer; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
+            <select id="select-unevaluated-dept-list" class="form-control form-control-sm unevaluated-select-control" style="min-width: 300px; max-width: 440px; font-weight: 700; font-size: 13px; height: 35px; cursor: pointer; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
               <option value="" style="font-weight: 700;">-- Bấm vào đây để xem ${unevaluatedDepts.length} khoa phòng chưa ghi nhận data --</option>
               ${unevaluatedDepts.map((d, i) => `<option value="${d}">${i + 1}. [${d}] (Chưa ghi nhận data)</option>`).join('')}
             </select>
@@ -906,6 +930,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = e.target.value;
             if (val) {
               ToastManager.show(`Khoa phòng [${val}] hiện chưa có dữ liệu đánh giá thu thập nào trong hệ thống!`, 'warning', 'Chưa Có Dữ Liệu');
+            }
+          });
+        }
+      }
+    }
+
+    // 3. Cập nhật Box Tổ hợp User chưa đánh giá trong Tab 2
+    const userBox = DOM.unevaluatedUsersBox;
+    if (userBox) {
+      if (unevaluatedUsers.length === 0) {
+        userBox.innerHTML = `
+          <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; color: #10b981; font-weight: 700; font-size: 12.5px;">
+            <i class="fas fa-check-circle"></i>
+            <span>Đã đánh giá 100% (${totalUsersCount}/${totalUsersCount} Tổ hợp User)</span>
+          </div>
+        `;
+      } else {
+        userBox.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 13.5px; font-weight: 700; color: #f59e0b; white-space: nowrap;">
+              Tổ hợp user chưa đánh giá
+            </label>
+            <select id="select-unevaluated-user-list" class="form-control form-control-sm unevaluated-select-control" style="min-width: 320px; max-width: 480px; font-weight: 700; font-size: 13px; height: 35px; cursor: pointer; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
+              <option value="" style="font-weight: 700;">-- Bấm vào đây để xem ${unevaluatedUsers.length} tổ hợp user chưa ghi nhận data --</option>
+              ${unevaluatedUsers.map((u, i) => `<option value="[${u.dept}] - ${u.title} - ${u.position}">${i + 1}. [${u.dept}] - ${u.title} - ${u.position} (Chưa ghi nhận data)</option>`).join('')}
+            </select>
+          </div>
+        `;
+
+        const selectUnevalUser = document.getElementById('select-unevaluated-user-list');
+        if (selectUnevalUser) {
+          selectUnevalUser.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val) {
+              ToastManager.show(`Tổ hợp user ${val} hiện chưa có dữ liệu đánh giá thu thập nào trong hệ thống!`, 'warning', 'Chưa Có Dữ Liệu');
             }
           });
         }
