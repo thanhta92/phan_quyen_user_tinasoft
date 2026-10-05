@@ -3081,9 +3081,14 @@ class Exporter {
 
   /**
    * FILE 1: Xuất file Excel ma trận nhiều Sheet theo KHOA/PHÒNG (Dữ liệu tổng hợp PQCN)
-   * Tên file mặc định: Phan_quyen_theo_khoa_phong.xlsx
+   * Tên file mặc định: Phan_quyen_theo_khoa_phong.xlsx (Đầy đủ) hoặc Phan_quyen_theo_khoa_phong_thu_gon.xlsx (Thu gọn)
    */
-  static async exportDeptExcel(filename = 'Phan_quyen_theo_khoa_phong.xlsx') {
+  static async exportDeptExcel(filename = 'Phan_quyen_theo_khoa_phong.xlsx', options = {}) {
+    const onlyEvaluated = !!(options && options.onlyEvaluated);
+    if (onlyEvaluated && filename === 'Phan_quyen_theo_khoa_phong.xlsx') {
+      filename = 'Phan_quyen_theo_khoa_phong_thu_gon.xlsx';
+    }
+
     if (typeof ExcelJS === 'undefined') {
       ToastManager.show('Thư viện ExcelJS đang được tải. Đang tải định dạng CSV dự phòng...', 'warning');
       this.exportAggregatedCSV(TinaDataStore.getAggregatedResults());
@@ -3237,80 +3242,118 @@ class Exporter {
           cellXuat.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
         });
 
-        // 4. Data Rows (Toàn bộ 353 chức năng TREE_DATA)
-        TREE_DATA.forEach(node => {
-          const rowData = [];
-          rowData[1] = node.stt;
-          const indent = '    '.repeat(node.depth || 0);
-          rowData[2] = indent + node.name;
-
-          combos.forEach((c, idx) => {
-            const startCol = 3 + idx * 3;
-            if (node.isFolder) {
-              rowData[startCol] = '';
-              rowData[startCol + 1] = '';
-              rowData[startCol + 2] = '';
-            } else {
-              const p = (c.perms && c.perms[node.id]) ? c.perms[node.id] : { xem: false, nhap: false, xuat: false };
-              rowData[startCol] = p.xem ? 'Xem' : '—';
-              rowData[startCol + 1] = p.nhap ? 'Nhập' : '—';
-              rowData[startCol + 2] = p.xuat ? 'Xuất báo cáo' : '—';
+        // 4. Data Rows (Toàn bộ 353 chức năng TREE_DATA hoặc Chỉ các mục đã đánh giá)
+        let nodesToRender = TREE_DATA;
+        if (onlyEvaluated) {
+          const evaluatedLeafIds = new Set();
+          TREE_DATA.forEach(node => {
+            if (!node.isFolder) {
+              const isEval = combos.some(c => {
+                const p = (c.perms && c.perms[node.id]) ? c.perms[node.id] : null;
+                return p && (p.xem || p.nhap || p.xuat);
+              });
+              if (isEval) evaluatedLeafIds.add(node.id);
             }
           });
 
-          const addedRow = ws.addRow(rowData);
-          addedRow.height = node.isFolder ? 22 : 21;
+          const visibleNodeIds = new Set();
+          const folderStack = [];
+          TREE_DATA.forEach(node => {
+            while (folderStack.length > 0 && folderStack[folderStack.length - 1].depth >= node.depth) {
+              folderStack.pop();
+            }
+            if (node.isFolder) {
+              folderStack.push({ depth: node.depth, id: node.id });
+            } else {
+              if (evaluatedLeafIds.has(node.id)) {
+                visibleNodeIds.add(node.id);
+                folderStack.forEach(f => visibleNodeIds.add(f.id));
+              }
+            }
+          });
 
-          if (node.isFolder) {
-            addedRow.eachCell({ includeEmpty: true }, (cell) => {
-              cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF1E293B' } };
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-              cell.border = {
+          nodesToRender = TREE_DATA.filter(n => visibleNodeIds.has(n.id));
+        }
+
+        if (nodesToRender.length === 0) {
+          const emptyRow = ws.addRow(['', 'Khoa phòng này chưa có mục chức năng nào được đánh giá']);
+          emptyRow.height = 24;
+          emptyRow.getCell(2).font = { name: 'Segoe UI', size: 9.5, italic: true, color: { argb: 'FF94A3B8' } };
+        } else {
+          nodesToRender.forEach(node => {
+            const rowData = [];
+            rowData[1] = node.stt;
+            const indent = '    '.repeat(node.depth || 0);
+            rowData[2] = indent + node.name;
+
+            combos.forEach((c, idx) => {
+              const startCol = 3 + idx * 3;
+              if (node.isFolder) {
+                rowData[startCol] = '';
+                rowData[startCol + 1] = '';
+                rowData[startCol + 2] = '';
+              } else {
+                const p = (c.perms && c.perms[node.id]) ? c.perms[node.id] : { xem: false, nhap: false, xuat: false };
+                rowData[startCol] = p.xem ? 'Xem' : '—';
+                rowData[startCol + 1] = p.nhap ? 'Nhập' : '—';
+                rowData[startCol + 2] = p.xuat ? 'Xuất báo cáo' : '—';
+              }
+            });
+
+            const addedRow = ws.addRow(rowData);
+            addedRow.height = node.isFolder ? 22 : 21;
+
+            if (node.isFolder) {
+              addedRow.eachCell({ includeEmpty: true }, (cell) => {
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF1E293B' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+                cell.border = {
+                  top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                  left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                  bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                  right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+                };
+              });
+            } else {
+              addedRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+              addedRow.getCell(1).font = { name: 'Segoe UI', size: 9.5, color: { argb: 'FF64748B' } };
+              addedRow.getCell(1).border = {
                 top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                 left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                 bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                 right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
               };
-            });
-          } else {
-            addedRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-            addedRow.getCell(1).font = { name: 'Segoe UI', size: 9.5, color: { argb: 'FF64748B' } };
-            addedRow.getCell(1).border = {
-              top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-            };
 
-            let hasXuat = false;
-            let hasNhap = false;
-            let hasXem = false;
+              let hasXuat = false;
+              let hasNhap = false;
+              let hasXem = false;
 
-            combos.forEach(c => {
-              const p = (c.perms && c.perms[node.id]) ? c.perms[node.id] : { xem: false, nhap: false, xuat: false };
-              if (p.xuat) hasXuat = true;
-              if (p.nhap) hasNhap = true;
-              if (p.xem) hasXem = true;
-            });
+              combos.forEach(c => {
+                const p = (c.perms && c.perms[node.id]) ? c.perms[node.id] : { xem: false, nhap: false, xuat: false };
+                if (p.xuat) hasXuat = true;
+                if (p.nhap) hasNhap = true;
+                if (p.xem) hasXem = true;
+              });
 
-            const cell2 = addedRow.getCell(2);
-            Exporter.applyFunctionNameCell(cell2, hasXuat, hasNhap, hasXem);
-            cell2.border = {
-              top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-            };
+              const cell2 = addedRow.getCell(2);
+              Exporter.applyFunctionNameCell(cell2, hasXuat, hasNhap, hasXem);
+              cell2.border = {
+                top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+              };
 
-            combos.forEach((c, idx) => {
-              const startCol = 3 + idx * 3;
-              const p = (c.perms && c.perms[node.id]) ? c.perms[node.id] : { xem: false, nhap: false, xuat: false };
-              Exporter.applyPillCell(addedRow.getCell(startCol), 'xem', !!p.xem);
-              Exporter.applyPillCell(addedRow.getCell(startCol + 1), 'nhap', !!p.nhap);
-              Exporter.applyPillCell(addedRow.getCell(startCol + 2), 'xuat', !!p.xuat);
-            });
-          }
-        });
+              combos.forEach((c, idx) => {
+                const startCol = 3 + idx * 3;
+                const p = (c.perms && c.perms[node.id]) ? c.perms[node.id] : { xem: false, nhap: false, xuat: false };
+                Exporter.applyPillCell(addedRow.getCell(startCol), 'xem', !!p.xem);
+                Exporter.applyPillCell(addedRow.getCell(startCol + 1), 'nhap', !!p.nhap);
+                Exporter.applyPillCell(addedRow.getCell(startCol + 2), 'xuat', !!p.xuat);
+              });
+            }
+          });
+        }
 
         // 5. Đường kẻ viền Headers
         [1, 2].forEach(rowNum => {
@@ -3325,7 +3368,7 @@ class Exporter {
         });
 
         // 6. Áp dụng Conditional Formatting động cho toàn bộ bảng tính
-        Exporter.applyWorksheetConditionalFormatting(ws, TREE_DATA.length + 2, combos.length);
+        Exporter.applyWorksheetConditionalFormatting(ws, ws.rowCount, combos.length);
       });
 
       // 7. Xuất ra file Excel
@@ -3341,19 +3384,24 @@ class Exporter {
   }
 
   // Giữ alias tương thích
-  static async exportMatrixExcel(filename = 'Phan_quyen_theo_khoa_phong.xlsx') {
-    return this.exportDeptExcel(filename);
+  static async exportMatrixExcel(filename = 'Phan_quyen_theo_khoa_phong.xlsx', options = {}) {
+    return this.exportDeptExcel(filename, options);
   }
 
   /**
    * FILE 2: Xuất file Excel ghi nhận từng lượt theo CÁ NHÂN
-   * Tên file mặc định: Phan_quyen_theo_ca_nhan.xlsx
+   * Tên file mặc định: Phan_quyen_theo_ca_nhan.xlsx (Đầy đủ) hoặc Phan_quyen_theo_ca_nhan_thu_gon.xlsx (Thu gọn)
    * - Mỗi Sheet là 1 Khoa/Phòng
    * - Mỗi tổ hợp (Khoa - Vị trí - Chức vụ - Người thực hiện) chiếm 1 cụm gồm 3 cột (Xem | Nhập liệu | Xuất báo cáo)
    * - Sắp xếp: Cùng tổ hợp (Khoa - Vị trí - Chức vụ) thì xếp liền kề nhau
    *   VD: Khoa Sản - BS - Nhân viên - BS Tá xếp gần Khoa Sản - BS - Nhân viên - BS An
    */
-  static async exportPersonalExcel(filename = 'Phan_quyen_theo_ca_nhan.xlsx') {
+  static async exportPersonalExcel(filename = 'Phan_quyen_theo_ca_nhan.xlsx', options = {}) {
+    const onlyEvaluated = !!(options && options.onlyEvaluated);
+    if (onlyEvaluated && filename === 'Phan_quyen_theo_ca_nhan.xlsx') {
+      filename = 'Phan_quyen_theo_ca_nhan_thu_gon.xlsx';
+    }
+
     if (typeof ExcelJS === 'undefined') {
       ToastManager.show('Thư viện ExcelJS đang được tải. Vui lòng thử lại sau giây lát...', 'warning');
       return false;
@@ -3489,80 +3537,118 @@ class Exporter {
           cellXuat.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
         });
 
-        // 4. Data Rows (Toàn bộ 353 chức năng TREE_DATA)
-        TREE_DATA.forEach(node => {
-          const rowData = [];
-          rowData[1] = node.stt;
-          const indent = '    '.repeat(node.depth || 0);
-          rowData[2] = indent + node.name;
-
-          records.forEach((r, idx) => {
-            const startCol = 3 + idx * 3;
-            if (node.isFolder) {
-              rowData[startCol] = '';
-              rowData[startCol + 1] = '';
-              rowData[startCol + 2] = '';
-            } else {
-              const p = (r.perms && r.perms[node.id]) ? r.perms[node.id] : { xem: false, nhap: false, xuat: false };
-              rowData[startCol] = p.xem ? 'Xem' : '—';
-              rowData[startCol + 1] = p.nhap ? 'Nhập' : '—';
-              rowData[startCol + 2] = p.xuat ? 'Xuất báo cáo' : '—';
+        // 4. Data Rows (Toàn bộ 353 chức năng TREE_DATA hoặc Chỉ các mục đã đánh giá)
+        let nodesToRender = TREE_DATA;
+        if (onlyEvaluated) {
+          const evaluatedLeafIds = new Set();
+          TREE_DATA.forEach(node => {
+            if (!node.isFolder) {
+              const isEval = records.some(r => {
+                const p = (r.perms && r.perms[node.id]) ? r.perms[node.id] : null;
+                return p && (p.xem || p.nhap || p.xuat);
+              });
+              if (isEval) evaluatedLeafIds.add(node.id);
             }
           });
 
-          const addedRow = ws.addRow(rowData);
-          addedRow.height = node.isFolder ? 22 : 21;
+          const visibleNodeIds = new Set();
+          const folderStack = [];
+          TREE_DATA.forEach(node => {
+            while (folderStack.length > 0 && folderStack[folderStack.length - 1].depth >= node.depth) {
+              folderStack.pop();
+            }
+            if (node.isFolder) {
+              folderStack.push({ depth: node.depth, id: node.id });
+            } else {
+              if (evaluatedLeafIds.has(node.id)) {
+                visibleNodeIds.add(node.id);
+                folderStack.forEach(f => visibleNodeIds.add(f.id));
+              }
+            }
+          });
 
-          if (node.isFolder) {
-            addedRow.eachCell({ includeEmpty: true }, (cell) => {
-              cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF1E293B' } };
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-              cell.border = {
+          nodesToRender = TREE_DATA.filter(n => visibleNodeIds.has(n.id));
+        }
+
+        if (nodesToRender.length === 0) {
+          const emptyRow = ws.addRow(['', 'Khoa phòng này chưa có lượt đánh giá nào có dữ liệu']);
+          emptyRow.height = 24;
+          emptyRow.getCell(2).font = { name: 'Segoe UI', size: 9.5, italic: true, color: { argb: 'FF94A3B8' } };
+        } else {
+          nodesToRender.forEach(node => {
+            const rowData = [];
+            rowData[1] = node.stt;
+            const indent = '    '.repeat(node.depth || 0);
+            rowData[2] = indent + node.name;
+
+            records.forEach((r, idx) => {
+              const startCol = 3 + idx * 3;
+              if (node.isFolder) {
+                rowData[startCol] = '';
+                rowData[startCol + 1] = '';
+                rowData[startCol + 2] = '';
+              } else {
+                const p = (r.perms && r.perms[node.id]) ? r.perms[node.id] : { xem: false, nhap: false, xuat: false };
+                rowData[startCol] = p.xem ? 'Xem' : '—';
+                rowData[startCol + 1] = p.nhap ? 'Nhập' : '—';
+                rowData[startCol + 2] = p.xuat ? 'Xuất báo cáo' : '—';
+              }
+            });
+
+            const addedRow = ws.addRow(rowData);
+            addedRow.height = node.isFolder ? 22 : 21;
+
+            if (node.isFolder) {
+              addedRow.eachCell({ includeEmpty: true }, (cell) => {
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF1E293B' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+                cell.border = {
+                  top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                  left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                  bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                  right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+                };
+              });
+            } else {
+              addedRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+              addedRow.getCell(1).font = { name: 'Segoe UI', size: 9.5, color: { argb: 'FF64748B' } };
+              addedRow.getCell(1).border = {
                 top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                 left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                 bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
                 right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
               };
-            });
-          } else {
-            addedRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-            addedRow.getCell(1).font = { name: 'Segoe UI', size: 9.5, color: { argb: 'FF64748B' } };
-            addedRow.getCell(1).border = {
-              top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-            };
 
-            let hasXuat = false;
-            let hasNhap = false;
-            let hasXem = false;
+              let hasXuat = false;
+              let hasNhap = false;
+              let hasXem = false;
 
-            records.forEach(r => {
-              const p = (r.perms && r.perms[node.id]) ? r.perms[node.id] : { xem: false, nhap: false, xuat: false };
-              if (p.xuat) hasXuat = true;
-              if (p.nhap) hasNhap = true;
-              if (p.xem) hasXem = true;
-            });
+              records.forEach(r => {
+                const p = (r.perms && r.perms[node.id]) ? r.perms[node.id] : { xem: false, nhap: false, xuat: false };
+                if (p.xuat) hasXuat = true;
+                if (p.nhap) hasNhap = true;
+                if (p.xem) hasXem = true;
+              });
 
-            const cell2 = addedRow.getCell(2);
-            Exporter.applyFunctionNameCell(cell2, hasXuat, hasNhap, hasXem);
-            cell2.border = {
-              top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-              right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-            };
+              const cell2 = addedRow.getCell(2);
+              Exporter.applyFunctionNameCell(cell2, hasXuat, hasNhap, hasXem);
+              cell2.border = {
+                top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+              };
 
-            records.forEach((r, idx) => {
-              const startCol = 3 + idx * 3;
-              const p = (r.perms && r.perms[node.id]) ? r.perms[node.id] : { xem: false, nhap: false, xuat: false };
-              Exporter.applyPillCell(addedRow.getCell(startCol), 'xem', !!p.xem);
-              Exporter.applyPillCell(addedRow.getCell(startCol + 1), 'nhap', !!p.nhap);
-              Exporter.applyPillCell(addedRow.getCell(startCol + 2), 'xuat', !!p.xuat);
-            });
-          }
-        });
+              records.forEach((r, idx) => {
+                const startCol = 3 + idx * 3;
+                const p = (r.perms && r.perms[node.id]) ? r.perms[node.id] : { xem: false, nhap: false, xuat: false };
+                Exporter.applyPillCell(addedRow.getCell(startCol), 'xem', !!p.xem);
+                Exporter.applyPillCell(addedRow.getCell(startCol + 1), 'nhap', !!p.nhap);
+                Exporter.applyPillCell(addedRow.getCell(startCol + 2), 'xuat', !!p.xuat);
+              });
+            }
+          });
+        }
 
         // 5. Viền Borders Headers
         [1, 2].forEach(rowNum => {
@@ -3577,7 +3663,7 @@ class Exporter {
         });
 
         // 6. Áp dụng Conditional Formatting động
-        Exporter.applyWorksheetConditionalFormatting(ws, TREE_DATA.length + 2, records.length);
+        Exporter.applyWorksheetConditionalFormatting(ws, ws.rowCount, records.length);
       });
 
       const buffer = await workbook.xlsx.writeBuffer();
@@ -3594,12 +3680,13 @@ class Exporter {
   /**
    * Xuất file Excel cho DUY NHẤT 1 lượt đánh giá theo Mã Đánh Giá (ID)
    */
-  static async exportSingleEvaluationExcel(evalId) {
+  static async exportSingleEvaluationExcel(evalId, options = {}) {
     if (typeof ExcelJS === 'undefined') {
       ToastManager.show('Thư viện ExcelJS đang được tải. Vui lòng thử lại...', 'warning');
       return false;
     }
 
+    const onlyEvaluated = !!(options && options.onlyEvaluated);
     const allEvaluations = TinaDataStore.getEvaluations();
     const rec = allEvaluations.find(r => r.id === evalId);
     if (!rec) {
@@ -3668,63 +3755,100 @@ class Exporter {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
       });
 
-      // Data Rows
-      TREE_DATA.forEach(node => {
-        const rowData = [];
-        rowData[1] = node.stt;
-        const indent = '    '.repeat(node.depth || 0);
-        rowData[2] = indent + node.name;
+      // Data Rows (Toàn bộ hoặc Chỉ mục đã đánh giá)
+      let nodesToRender = TREE_DATA;
+      if (onlyEvaluated) {
+        const evaluatedLeafIds = new Set();
+        TREE_DATA.forEach(node => {
+          if (!node.isFolder) {
+            const p = (rec.perms && rec.perms[node.id]) ? rec.perms[node.id] : null;
+            if (p && (p.xem || p.nhap || p.xuat)) {
+              evaluatedLeafIds.add(node.id);
+            }
+          }
+        });
 
-        if (node.isFolder) {
-          rowData[3] = '';
-          rowData[4] = '';
-          rowData[5] = '';
-        } else {
-          const p = (rec.perms && rec.perms[node.id]) ? rec.perms[node.id] : { xem: false, nhap: false, xuat: false };
-          rowData[3] = p.xem ? 'Xem' : '—';
-          rowData[4] = p.nhap ? 'Nhập' : '—';
-          rowData[5] = p.xuat ? 'Xuất báo cáo' : '—';
-        }
+        const visibleNodeIds = new Set();
+        const folderStack = [];
+        TREE_DATA.forEach(node => {
+          while (folderStack.length > 0 && folderStack[folderStack.length - 1].depth >= node.depth) {
+            folderStack.pop();
+          }
+          if (node.isFolder) {
+            folderStack.push({ depth: node.depth, id: node.id });
+          } else {
+            if (evaluatedLeafIds.has(node.id)) {
+              visibleNodeIds.add(node.id);
+              folderStack.forEach(f => visibleNodeIds.add(f.id));
+            }
+          }
+        });
 
-        const addedRow = ws.addRow(rowData);
-        addedRow.height = node.isFolder ? 22 : 21;
+        nodesToRender = TREE_DATA.filter(n => visibleNodeIds.has(n.id));
+      }
 
-        if (node.isFolder) {
-          addedRow.eachCell({ includeEmpty: true }, (cell) => {
-            cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF1E293B' } };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-            cell.border = {
+      if (nodesToRender.length === 0) {
+        const emptyRow = ws.addRow(['', 'Lượt đánh giá này chưa có chức năng nào được chọn']);
+        emptyRow.height = 24;
+        emptyRow.getCell(2).font = { name: 'Segoe UI', size: 9.5, italic: true, color: { argb: 'FF94A3B8' } };
+      } else {
+        nodesToRender.forEach(node => {
+          const rowData = [];
+          rowData[1] = node.stt;
+          const indent = '    '.repeat(node.depth || 0);
+          rowData[2] = indent + node.name;
+
+          if (node.isFolder) {
+            rowData[3] = '';
+            rowData[4] = '';
+            rowData[5] = '';
+          } else {
+            const p = (rec.perms && rec.perms[node.id]) ? rec.perms[node.id] : { xem: false, nhap: false, xuat: false };
+            rowData[3] = p.xem ? 'Xem' : '—';
+            rowData[4] = p.nhap ? 'Nhập' : '—';
+            rowData[5] = p.xuat ? 'Xuất báo cáo' : '—';
+          }
+
+          const addedRow = ws.addRow(rowData);
+          addedRow.height = node.isFolder ? 22 : 21;
+
+          if (node.isFolder) {
+            addedRow.eachCell({ includeEmpty: true }, (cell) => {
+              cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF1E293B' } };
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+              cell.border = {
+                top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+                right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+              };
+            });
+          } else {
+            addedRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+            addedRow.getCell(1).font = { name: 'Segoe UI', size: 9.5, color: { argb: 'FF64748B' } };
+            addedRow.getCell(1).border = {
               top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
               left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
               bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
               right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
             };
-          });
-        } else {
-          addedRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-          addedRow.getCell(1).font = { name: 'Segoe UI', size: 9.5, color: { argb: 'FF64748B' } };
-          addedRow.getCell(1).border = {
-            top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-            left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-            bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-            right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-          };
 
-          const p = (rec.perms && rec.perms[node.id]) ? rec.perms[node.id] : { xem: false, nhap: false, xuat: false };
-          const cell2 = addedRow.getCell(2);
-          Exporter.applyFunctionNameCell(cell2, !!p.xuat, !!p.nhap, !!p.xem);
-          cell2.border = {
-            top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-            left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-            bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-            right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-          };
+            const p = (rec.perms && rec.perms[node.id]) ? rec.perms[node.id] : { xem: false, nhap: false, xuat: false };
+            const cell2 = addedRow.getCell(2);
+            Exporter.applyFunctionNameCell(cell2, !!p.xuat, !!p.nhap, !!p.xem);
+            cell2.border = {
+              top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+              left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+              bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+              right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+            };
 
-          Exporter.applyPillCell(addedRow.getCell(3), 'xem', !!p.xem);
-          Exporter.applyPillCell(addedRow.getCell(4), 'nhap', !!p.nhap);
-          Exporter.applyPillCell(addedRow.getCell(5), 'xuat', !!p.xuat);
-        }
-      });
+            Exporter.applyPillCell(addedRow.getCell(3), 'xem', !!p.xem);
+            Exporter.applyPillCell(addedRow.getCell(4), 'nhap', !!p.nhap);
+            Exporter.applyPillCell(addedRow.getCell(5), 'xuat', !!p.xuat);
+          }
+        });
+      }
 
       // Borders Headers
       [1, 2].forEach(rowNum => {
@@ -3739,10 +3863,11 @@ class Exporter {
       });
 
       // Áp dụng Conditional Formatting động
-      Exporter.applyWorksheetConditionalFormatting(ws, TREE_DATA.length + 2, 1);
+      Exporter.applyWorksheetConditionalFormatting(ws, ws.rowCount, 1);
 
       const cleanEvaluator = (rec.evaluator || 'Ca_nhan').replace(/[\s\/\\?*:[\]]/g, '_');
-      const filename = `Phan_quyen_${rec.id}_${cleanEvaluator}.xlsx`;
+      const suffix = onlyEvaluated ? '_thu_gon' : '';
+      const filename = `Phan_quyen_${rec.id}_${cleanEvaluator}${suffix}.xlsx`;
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

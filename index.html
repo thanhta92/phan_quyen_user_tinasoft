@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=218">
+  <link rel="stylesheet" href="style.css?v=219">
 </head>
 
 <body>
@@ -267,13 +267,14 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
               <p class="panel-subtitle" style="font-size: 12px;">Quy tắc tổng hợp: Mỗi mục chức năng, nếu có ít nhất 1
                 lần tích chọn trong các lượt đánh giá của Tổ hợp -> Kết quả = TÍCH CHỌN.</p>
             </div>
-            <!-- Vị trí 1: Hai nút chức năng -->
-            <div style="display: flex; gap: 8px;">
+            <!-- Vị trí 1: Các nút chức năng -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-success btn-sm" id="btn-export-aggregated-excel"
-                title="Xuất File: Phan_quyen_theo_khoa_phong.xlsx"><i class="fas fa-file-excel"></i> Xuất Excel
-                Khoa/Phòng</button>
-              <button class="btn btn-secondary btn-sm" id="btn-relock-data"><i class="fas fa-lock"></i> Khóa
-                Lại</button>
+                title="Xuất File: Phan_quyen_theo_khoa_phong.xlsx (Đầy đủ 353 chức năng)"><i class="fas fa-file-excel"></i> Xuất Excel Đầy Đủ</button>
+              <button class="btn btn-primary btn-sm" id="btn-export-dept-compact"
+                title="Xuất File: Phan_quyen_theo_khoa_phong_thu_gon.xlsx (Chỉ hiển thị các mục đã đánh giá)"
+                style="font-weight: 700;"><i class="fas fa-file-lines"></i> Xuất Excel Thu Gọn</button>
+              <button class="btn btn-secondary btn-sm" id="btn-relock-data"><i class="fas fa-lock"></i> Khóa Lại</button>
             </div>
           </div>
 
@@ -339,8 +340,10 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
                 <i class="fas fa-arrows-rotate"></i> Đồng Bộ / Nhập Dữ Liệu
               </button>
               <button class="btn btn-success btn-sm" id="btn-export-history-excel"
-                title="Xuất File: Phan_quyen_theo_ca_nhan.xlsx"><i class="fas fa-file-excel"></i> Xuất Excel Theo Cá
-                Nhân</button>
+                title="Xuất File: Phan_quyen_theo_ca_nhan.xlsx (Đầy đủ 353 chức năng)"><i class="fas fa-file-excel"></i> Xuất Excel Đầy Đủ</button>
+              <button class="btn btn-primary btn-sm" id="btn-export-personal-compact"
+                title="Xuất File: Phan_quyen_theo_ca_nhan_thu_gon.xlsx (Chỉ hiển thị các mục đã đánh giá)"
+                style="font-weight: 700;"><i class="fas fa-file-lines"></i> Xuất Excel Thu Gọn</button>
               <button class="btn btn-secondary btn-sm" id="btn-clear-all-evals" style="color: var(--status-danger);"><i
                   class="fas fa-trash-alt"></i> Xóa Dữ Liệu</button>
               <button class="btn btn-secondary btn-sm btn-relock-data-all"><i class="fas fa-lock"></i> Khóa Lại</button>
@@ -704,9 +707,9 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <!-- App Core JavaScript Files -->
-  <script src="firebase-sync.js?v=218"></script>
-  <script src="lib.js?v=218"></script>
-  <script src="app.js?v=218"></script>
+  <script src="firebase-sync.js?v=219"></script>
+  <script src="lib.js?v=219"></script>
+  <script src="app.js?v=219"></script>
 
 </body>
 

@@ -990,25 +990,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Excel Handlers
   const handleExportDeptExcel = async () => {
-    ToastManager.show('Đang tạo file Excel phân quyền theo Khoa / Phòng...', 'info');
+    ToastManager.show('Đang tạo file Excel phân quyền theo Khoa / Phòng (Đầy đủ)...', 'info');
     const ok = await Exporter.exportDeptExcel('Phan_quyen_theo_khoa_phong.xlsx');
     if (ok) {
-      ToastManager.show('Đã xuất thành công: Phan_quyen_theo_khoa_phong.xlsx', 'success', 'Xuất File 1 Thành Công');
+      ToastManager.show('Đã xuất thành công: Phan_quyen_theo_khoa_phong.xlsx', 'success', 'Xuất File Đầy Đủ Thành Công');
+    }
+  };
+
+  const handleExportDeptExcelCompact = async () => {
+    ToastManager.show('Đang tạo file Excel phân quyền theo Khoa / Phòng (Thu gọn - chỉ mục đã đánh giá)...', 'info');
+    const ok = await Exporter.exportDeptExcel('Phan_quyen_theo_khoa_phong_thu_gon.xlsx', { onlyEvaluated: true });
+    if (ok) {
+      ToastManager.show('Đã xuất thành công: Phan_quyen_theo_khoa_phong_thu_gon.xlsx', 'success', 'Xuất File Thu Gọn Thành Công');
     }
   };
 
   const handleExportPersonalExcel = async () => {
-    ToastManager.show('Đang tạo file Excel ghi nhận theo Cá Nhân...', 'info');
+    ToastManager.show('Đang tạo file Excel ghi nhận theo Cá Nhân (Đầy đủ)...', 'info');
     const ok = await Exporter.exportPersonalExcel('Phan_quyen_theo_ca_nhan.xlsx');
     if (ok) {
-      ToastManager.show('Đã xuất thành công: Phan_quyen_theo_ca_nhan.xlsx', 'success', 'Xuất File 2 Thành Công');
+      ToastManager.show('Đã xuất thành công: Phan_quyen_theo_ca_nhan.xlsx', 'success', 'Xuất File Đầy Đủ Thành Công');
+    }
+  };
+
+  const handleExportPersonalExcelCompact = async () => {
+    ToastManager.show('Đang tạo file Excel ghi nhận theo Cá Nhân (Thu gọn - chỉ mục đã đánh giá)...', 'info');
+    const ok = await Exporter.exportPersonalExcel('Phan_quyen_theo_ca_nhan_thu_gon.xlsx', { onlyEvaluated: true });
+    if (ok) {
+      ToastManager.show('Đã xuất thành công: Phan_quyen_theo_ca_nhan_thu_gon.xlsx', 'success', 'Xuất File Thu Gọn Thành Công');
     }
   };
 
   document.getElementById('btn-export-dept')?.addEventListener('click', handleExportDeptExcel);
   document.getElementById('btn-export-aggregated-excel')?.addEventListener('click', handleExportDeptExcel);
+  document.getElementById('btn-export-dept-compact')?.addEventListener('click', handleExportDeptExcelCompact);
   document.getElementById('btn-export-personal')?.addEventListener('click', handleExportPersonalExcel);
   document.getElementById('btn-export-history-excel')?.addEventListener('click', handleExportPersonalExcel);
+  document.getElementById('btn-export-personal-compact')?.addEventListener('click', handleExportPersonalExcelCompact);
 
   // ==========================================================================
   // 8. TAB 3: Render Lịch Sử Đánh Giá & Thống Kê (Event Delegation)
