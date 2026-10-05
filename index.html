@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- App Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=216">
+  <link rel="stylesheet" href="style.css?v=218">
 </head>
 
 <body>
@@ -186,7 +186,7 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
                       DANH SÁCH CÁC CHỨC NĂNG TRÊN TINASOFT
                     </div>
 
-                    <!-- 3 Action Buttons (nằm sát bên tiêu đề) -->
+                    <!-- Action Buttons (nằm sát bên tiêu đề) -->
                     <div class="header-actions-inline" style="flex-shrink: 0;">
                       <button type="button" class="btn btn-secondary btn-header" id="btn-expand-all"
                         title="Mở rộng tất cả thư mục">
@@ -195,6 +195,10 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
                       <button type="button" class="btn btn-secondary btn-header" id="btn-collapse-all"
                         title="Thu gọn toàn bộ thư mục">
                         <i class="fas fa-folder" style="color: #475569;"></i> Thu gọn
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-header btn-filter-eval-toggle" id="btn-filter-evaluated"
+                        title="Chỉ hiển thị các mục ở cột 'Chức năng yêu cầu' đã đánh giá / Bấm lại để hiện tất cả">
+                        <i class="fas fa-clipboard-check" style="color: #10b981;"></i> <span>Mục yêu cầu đã chọn (<b id="filter-eval-count">0</b>)</span>
                       </button>
                       <button type="button" class="btn btn-secondary btn-header" id="btn-clear-eval-perms"
                         title="Bỏ chọn tất cả quyền đã đánh giá">
@@ -700,9 +704,9 @@ MAN HINH 2: GIAO DIEN CAY CHUC NANG THEO DUNG ANH CHU THICH CUA USER
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <!-- App Core JavaScript Files -->
-  <script src="firebase-sync.js?v=216"></script>
-  <script src="lib.js?v=216"></script>
-  <script src="app.js?v=216"></script>
+  <script src="firebase-sync.js?v=218"></script>
+  <script src="lib.js?v=218"></script>
+  <script src="app.js?v=218"></script>
 
 </body>
 

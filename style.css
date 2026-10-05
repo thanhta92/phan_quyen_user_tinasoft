@@ -772,6 +772,44 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
+.btn-filter-eval-toggle {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-filter-eval-toggle:hover {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+}
+
+.btn-filter-eval-toggle.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.btn-filter-eval-toggle.active i {
+  color: #ffffff !important;
+  animation: filter-pulse 1.8s infinite;
+}
+
+.btn-filter-eval-toggle.active span b {
+  background: #ffffff;
+  color: #047857;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 2px;
+}
+
+@keyframes filter-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
 /* Tree Viewport Maximized Table */
 .tree-viewport-maximized {
   max-height: calc(100vh - 100px) !important;

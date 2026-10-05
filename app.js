@@ -61,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtnContainer: document.getElementById('tab-eval-save-container'),
     btnSaveEval: document.getElementById('btn-save-evaluation'),
     btnSaveInline: document.getElementById('btn-save-inline'),
+    btnFilterEvaluated: document.getElementById('btn-filter-evaluated'),
+    filterEvalCount: document.getElementById('filter-eval-count'),
     treeTableBody: document.getElementById('tree-table-body'),
     searchTreeKeyword: document.getElementById('search-tree-keyword'),
     summaryTableHead: document.getElementById('summary-table-head'),
@@ -96,7 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
     evaluations: TinaDataStore.getEvaluations(),
     currentPerms: {}, // { item_id: { xem: bool, nhap: bool, xuat: bool } }
     collapsedFolders: new Set(),
-    treeKeyword: ''
+    treeKeyword: '',
+    filterEvaluatedOnly: false
   };
 
   function updateThemeIcon() {
@@ -123,9 +126,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================================================
   // 3. Dropdowns Đăng Nhập & Phiên Làm Việc
   // ==========================================================================
+  // ==========================================================================
+  // 3. Dropdowns Đăng Nhập & Phiên Làm Việc (Smart Cascading & Validation)
+  // ==========================================================================
   function initLoginDropdowns() {
-    const { loginDept, loginPosition, loginTitle } = DOM;
+    const { loginDept, loginPosition, loginTitle, loginEvaluator } = DOM;
     if (!loginDept || !loginPosition || !loginTitle) return;
+
+    // Tự động điền lại tên Người thực hiện từ phiên trước nếu có
+    const savedEvaluator = SafeStorage.get('tina_last_evaluator', '');
+    if (savedEvaluator && loginEvaluator && !loginEvaluator.value) {
+      loginEvaluator.value = savedEvaluator;
+    }
 
     // 1. Nạp danh sách Khoa phòng - Bộ phận
     loginDept.innerHTML = '<option value="">-- Chọn Khoa phòng - Bộ phận --</option>' +
@@ -136,6 +148,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const availableTitles = Object.keys(KHOA_PHONG_HIERARCHY[selectedDept]);
         loginPosition.innerHTML = '<option value="">-- Chọn Chức danh --</option>' +
           availableTitles.map(p => `<option value="${p}">${p}</option>`).join('');
+        // Tự động chọn nếu khoa chỉ có duy nhất 1 chức danh
+        if (availableTitles.length === 1) {
+          loginPosition.value = availableTitles[0];
+        }
       } else {
         loginPosition.innerHTML = '<option value="">-- Chọn Chức danh --</option>' +
           CHUC_DANH_LIST.map(p => `<option value="${p}">${p}</option>`).join('');
@@ -148,6 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const availableTitles = KHOA_PHONG_HIERARCHY[selectedDept][selectedPos];
         loginTitle.innerHTML = '<option value="">-- Chọn Vị trí --</option>' +
           availableTitles.map(t => `<option value="${t}">${t}</option>`).join('');
+        // Tự động chọn nếu chỉ có duy nhất 1 vị trí tương ứng
         if (availableTitles.length === 1) {
           loginTitle.value = availableTitles[0];
         }
@@ -161,11 +178,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loginDept.onchange = () => {
       updatePositions(loginDept.value);
+      if (DOM.loginErrorAlert) DOM.loginErrorAlert.style.display = 'none';
     };
 
     loginPosition.onchange = () => {
       updateTitles(loginDept.value, loginPosition.value);
+      if (DOM.loginErrorAlert) DOM.loginErrorAlert.style.display = 'none';
     };
+
+    loginTitle.onchange = () => {
+      if (DOM.loginErrorAlert) DOM.loginErrorAlert.style.display = 'none';
+    };
+
+    if (loginEvaluator) {
+      loginEvaluator.oninput = () => {
+        if (DOM.loginErrorAlert) DOM.loginErrorAlert.style.display = 'none';
+      };
+    }
   }
 
   // Đảm bảo xoá mọi session/draft cũ để mỗi lần truy cập link luôn ở giao diện login mặc định
@@ -177,47 +206,79 @@ document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   refreshAllData();
 
-  // Xử lý Form Đăng Nhập
-  if (DOM.formLogin) {
-    DOM.formLogin.addEventListener('submit', (e) => {
-      e.preventDefault();
+  // Xử lý logic Đăng Nhập
+  function handleLoginSubmit(e) {
+    if (e) e.preventDefault();
 
-      const dept = DOM.loginDept.value;
-      const pos = DOM.loginPosition.value;
-      const title = DOM.loginTitle.value;
-      const evaluator = DOM.loginEvaluator.value.trim();
+    const dept = (DOM.loginDept?.value || '').trim();
+    const pos = (DOM.loginPosition?.value || '').trim();
+    const title = (DOM.loginTitle?.value || '').trim();
+    const evaluator = (DOM.loginEvaluator?.value || '').trim();
 
-      if (!dept || !pos || !title || !evaluator) {
-        if (DOM.loginErrorAlert) DOM.loginErrorAlert.style.display = 'flex';
-        return;
+    const missingFields = [];
+    if (!dept) missingFields.push('Khoa phòng - Bộ phận');
+    if (!pos) missingFields.push('Chức danh');
+    if (!title) missingFields.push('Vị trí');
+    if (!evaluator) missingFields.push('Người thực hiện');
+
+    if (missingFields.length > 0) {
+      if (DOM.loginErrorAlert) {
+        DOM.loginErrorAlert.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Vui lòng chọn và điền: <strong>${missingFields.join(', ')}</strong>`;
+        DOM.loginErrorAlert.style.display = 'flex';
       }
+      ToastManager.show(`Vui lòng chọn/điền: ${missingFields.join(', ')}`, 'warning', 'Thiếu Thông Tin');
 
-      // Mỗi lần đăng nhập là một đợt đánh giá mới của người dùng:
-      // - Cột "Chức năng yêu cầu" (bên trái) luôn reset trống trơn để người này tự do tích chọn
-      // - Cột "Chức năng đã yêu cầu" (bên phải) sẽ tự động hiển thị tổng hợp (OR) các quyền đã tích của tất cả các đợt trước đó
-      appState.currentSessionEvalId = null;
-      appState.currentPerms = {};
+      if (!dept && DOM.loginDept) DOM.loginDept.focus();
+      else if (!pos && DOM.loginPosition) DOM.loginPosition.focus();
+      else if (!title && DOM.loginTitle) DOM.loginTitle.focus();
+      else if (!evaluator && DOM.loginEvaluator) DOM.loginEvaluator.focus();
+      return false;
+    }
 
-      appState.isLoggedIn = true;
-      appState.currentDept = dept;
-      appState.currentPos = pos;
-      appState.currentTitle = title;
-      appState.currentEvaluator = evaluator;
+    if (DOM.loginErrorAlert) DOM.loginErrorAlert.style.display = 'none';
 
-      if (DOM.loginScreen) DOM.loginScreen.style.display = 'none';
-      if (DOM.mainAppScreen) DOM.mainAppScreen.style.display = 'block';
+    // Lưu người đánh giá lại để lần sau truy cập tiện lợi
+    SafeStorage.set('tina_last_evaluator', evaluator);
 
-      if (DOM.activeText) {
-        DOM.activeText.textContent = `[${dept}] - [${pos}] - [${title}]`;
-      }
-      if (DOM.comboHeader) DOM.comboHeader.style.display = 'inline-flex';
+    // Mỗi lần đăng nhập là một đợt đánh giá mới của người dùng:
+    // - Cột "Chức năng yêu cầu" (bên trái) luôn reset trống trơn để người này tự do tích chọn
+    // - Cột "Chức năng đã yêu cầu" (bên phải) sẽ tự động hiển thị tổng hợp (OR) các quyền đã tích của tất cả các đợt trước đó
+    appState.currentSessionEvalId = null;
+    appState.currentPerms = {};
+    appState.filterEvaluatedOnly = false;
+    if (DOM.btnFilterEvaluated) DOM.btnFilterEvaluated.classList.remove('active');
 
-      switchTab('tab-eval');
-      renderTreeTable();
+    appState.isLoggedIn = true;
+    appState.currentDept = dept;
+    appState.currentPos = pos;
+    appState.currentTitle = title;
+    appState.currentEvaluator = evaluator;
 
-      ToastManager.show(`Đăng nhập thành công tổ hợp [${dept}] - [${pos}] - [${title}]`, 'success', 'Đăng Nhập Thành Công');
-    });
+    if (DOM.loginScreen) DOM.loginScreen.style.display = 'none';
+    if (DOM.mainAppScreen) DOM.mainAppScreen.style.display = 'block';
+
+    if (DOM.activeText) {
+      DOM.activeText.textContent = `[${dept}] - [${pos}] - [${title}]`;
+    }
+    if (DOM.comboHeader) DOM.comboHeader.style.display = 'inline-flex';
+
+    switchTab('tab-eval');
+    renderTreeTable();
+
+    ToastManager.show(`Đăng nhập thành công tổ hợp [${dept}] - [${pos}] - [${title}]`, 'success', 'Đăng Nhập Thành Công');
+    return true;
   }
+
+  // Gán Event Listeners cho Form và Nút Đăng Nhập
+  if (DOM.formLogin) {
+    DOM.formLogin.addEventListener('submit', handleLoginSubmit);
+  }
+  document.getElementById('btn-login')?.addEventListener('click', (e) => {
+    // Đảm bảo kích hoạt login nếu form submit bị chặn trên một số trình duyệt
+    if (DOM.formLogin && !DOM.formLogin.checkValidity()) {
+      handleLoginSubmit(e);
+    }
+  });
 
   // Nút Đăng Xuất
   DOM.btnLogout?.addEventListener('click', () => {
@@ -228,6 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
     appState.currentEvaluator = '';
     appState.currentSessionEvalId = null;
     appState.currentPerms = {};
+    appState.filterEvaluatedOnly = false;
+    if (DOM.btnFilterEvaluated) DOM.btnFilterEvaluated.classList.remove('active');
 
     switchTab('tab-eval');
     SafeStorage.remove('tina_auth_session');
@@ -286,6 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
       DOM.btnSaveInline.innerHTML = count > 0 
         ? `<i class="fas fa-save"></i> <span>LƯU (${count})</span>` 
         : `<i class="fas fa-save"></i> <span>LƯU</span>`;
+    }
+
+    // Cập nhật số lượng mục đã đánh giá cho nút Lọc (chỉ tính cột Chức năng yêu cầu)
+    if (DOM.filterEvalCount) {
+      DOM.filterEvalCount.textContent = count;
     }
   }
 
@@ -402,15 +470,92 @@ document.addEventListener('DOMContentLoaded', () => {
       r.title === appState.currentTitle
     );
 
+    // 1. Xác định tập hợp các mục lá đã được đánh giá ở cột "CHỨC NĂNG YÊU CẦU"
+    const evaluatedLeafIds = new Set();
+    TREE_DATA.forEach(node => {
+      if (!node.isFolder) {
+        const p = appState.currentPerms[node.id];
+        if (p && (p.xem || p.nhap || p.xuat)) {
+          evaluatedLeafIds.add(node.id);
+        }
+      }
+    });
+
+    if (DOM.filterEvalCount) {
+      DOM.filterEvalCount.textContent = evaluatedLeafIds.size;
+    }
+
+    if (DOM.btnFilterEvaluated) {
+      if (appState.filterEvaluatedOnly) {
+        DOM.btnFilterEvaluated.classList.add('active');
+      } else {
+        DOM.btnFilterEvaluated.classList.remove('active');
+      }
+    }
+
+    // Nếu đang bật chế độ lọc nhưng chưa có mục nào được chọn ở cột Chức năng yêu cầu
+    if (appState.filterEvaluatedOnly && evaluatedLeafIds.size === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 14px;">
+              <i class="fas fa-hand-pointer"></i>
+            </div>
+            <div style="font-weight: 700; font-size: 15px; margin-bottom: 6px; color: var(--text-main);">
+              Chưa có mục nào được đánh giá ở cột "Chức năng yêu cầu"
+            </div>
+            <div style="font-size: 13px; max-width: 480px; margin: 0 auto 16px; line-height: 1.5;">
+              Vui lòng tích chọn quyền (Xem / Nhập / Xuất) ở cột <strong>Chức năng yêu cầu</strong> để bắt đầu đánh giá.
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-eval-filter" style="font-weight: 700;">
+              <i class="fas fa-rotate-left"></i> Hiển thị lại toàn bộ 353 chức năng
+            </button>
+          </td>
+        </tr>
+      `;
+      document.getElementById('btn-reset-eval-filter')?.addEventListener('click', () => {
+        appState.filterEvaluatedOnly = false;
+        if (DOM.btnFilterEvaluated) DOM.btnFilterEvaluated.classList.remove('active');
+        renderTreeTable();
+        ToastManager.show('Đã hiển thị lại toàn bộ cây chức năng', 'info');
+      });
+      updateEvalCountBadge();
+      return;
+    }
+
+    // Xây dựng danh sách node hiển thị (leaf + tất cả ancestor folders của chúng)
+    let visibleNodeIds = null;
+    if (appState.filterEvaluatedOnly) {
+      visibleNodeIds = new Set();
+      const folderStack = [];
+      TREE_DATA.forEach(node => {
+        while (folderStack.length > 0 && folderStack[folderStack.length - 1].depth >= node.depth) {
+          folderStack.pop();
+        }
+        if (node.isFolder) {
+          folderStack.push({ depth: node.depth, id: node.id });
+        } else {
+          if (evaluatedLeafIds.has(node.id)) {
+            visibleNodeIds.add(node.id);
+            folderStack.forEach(f => visibleNodeIds.add(f.id));
+          }
+        }
+      });
+    }
+
     let html = '';
     const collapsedDepths = [];
 
     TREE_DATA.forEach(node => {
+      if (visibleNodeIds && !visibleNodeIds.has(node.id)) {
+        return;
+      }
+
       while (collapsedDepths.length > 0 && collapsedDepths[collapsedDepths.length - 1] >= node.depth) {
         collapsedDepths.pop();
       }
 
-      if (!keyword && collapsedDepths.length > 0) {
+      if (!keyword && !appState.filterEvaluatedOnly && collapsedDepths.length > 0) {
         return;
       }
 
@@ -423,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (node.isFolder) {
         const isCollapsed = appState.collapsedFolders.has(node.id);
-        if (isCollapsed) {
+        if (isCollapsed && !appState.filterEvaluatedOnly) {
           collapsedDepths.push(node.depth);
         }
 
@@ -433,9 +578,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <td colspan="3" class="td-folder-content">
               <div class="folder-title-row" style="padding-left: ${node.depth * 20}px; display: flex; align-items: center; gap: 8px;">
                 <button type="button" class="btn-toggle-folder" data-id="${node.id}" title="${isCollapsed ? 'Mở rộng thư mục' : 'Thu gọn thư mục'}">
-                  <i class="fas fa-chevron-${isCollapsed ? 'right' : 'down'}"></i>
+                  <i class="fas fa-chevron-${(isCollapsed && !appState.filterEvaluatedOnly) ? 'right' : 'down'}"></i>
                 </button>
-                <i class="fas fa-folder${isCollapsed ? '' : '-open'} folder-icon" style="color: #f59e0b;"></i>
+                <i class="fas fa-folder${(isCollapsed && !appState.filterEvaluatedOnly) ? '' : '-open'} folder-icon" style="color: #f59e0b;"></i>
                 <span class="folder-title-clickable" data-id="${node.id}" style="cursor: pointer; font-weight: 700; color: var(--text-main);">
                   ${node.name}
                 </span>
@@ -470,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td class="td-perm-interactive" style="text-align: center; border-left: 2px solid #2563eb;">
               <div class="mobile-perm-label"><i class="fas fa-hand-pointer"></i> Chọn quyền yêu cầu:</div>
               <div class="perm-pill-group">
-                <button type="button" class="btn-perm-pill btn-perm-xem ${p.xem ? 'active' : ''}" data-id="${node.id}" data-action="xem" title="Đánh giá quyền Xem">
+                 <button type="button" class="btn-perm-pill btn-perm-xem ${p.xem ? 'active' : ''}" data-id="${node.id}" data-action="xem" title="Đánh giá quyền Xem">
                   <i class="fas fa-eye pill-icon"></i> Xem
                 </button>
                 <button type="button" class="btn-perm-pill btn-perm-nhap ${p.nhap ? 'active' : ''}" data-id="${node.id}" data-action="nhap" title="Đánh giá quyền Nhập">
@@ -579,6 +724,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     renderTreeTable();
     ToastManager.show('Đã thu gọn toàn bộ thư mục', 'info');
+  });
+
+  // Nút Lọc chỉ hiển thị các mục đã đánh giá ở cột Chức năng yêu cầu
+  DOM.btnFilterEvaluated?.addEventListener('click', () => {
+    appState.filterEvaluatedOnly = !appState.filterEvaluatedOnly;
+    if (appState.filterEvaluatedOnly) {
+      DOM.btnFilterEvaluated.classList.add('active');
+      const count = DOM.filterEvalCount ? DOM.filterEvalCount.textContent : '0';
+      ToastManager.show(`Đang lọc: Chỉ hiển thị ${count} mục đã chọn ở cột "Chức năng yêu cầu"`, 'info');
+    } else {
+      DOM.btnFilterEvaluated.classList.remove('active');
+      ToastManager.show('Đã hiển thị lại toàn bộ cây chức năng', 'info');
+    }
+    renderTreeTable();
   });
 
   document.getElementById('btn-clear-eval-perms')?.addEventListener('click', () => {
@@ -971,7 +1130,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
-
   function renderHistoryTable() {
     const tbody = DOM.historyTableBody;
     if (!tbody) return;
@@ -1018,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = html;
   }
+
 
   // Event Delegation cho History Table
   if (DOM.historyTableBody) {
